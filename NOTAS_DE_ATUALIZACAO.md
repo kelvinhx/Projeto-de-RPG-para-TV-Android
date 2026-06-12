@@ -2,6 +2,21 @@
 
 Este arquivo de controle registra as modificações de build e novas implementações entregues à plataforma.
 
+## [Build v4.0] - Versão do Aplicativo: 4.0
+**Data e Hora do Envio:** 12 de Junho de 2026, às 17:40:00 BRT / 20:40:00 UTC
+
+### O que há de novo nesta Build:
+
+1. **Correção Crítica no Pipeline de Compilação do GitHub Actions (CI/CD Build Fix):**
+   - Corrigido o erro fatal da tarefa `:app:validateSigningDebug` no pipeline do GitHub, em que o arquivo `debug.keystore` (não versionado por segurança) causava interrupção prematura do build remoto do Android.
+   - Refatorado o arquivo `app/build.gradle.kts` para introduzir o carregamento condicional e resiliente do chaveiro de depuração. Agora, a assinatura customizada `debugConfig` é aplicada dinamicamente apenas se o arquivo `debug.keystore` existir fisicamente na raiz do projeto (como ocorre no ambiente emulado da nuvem na AI Studio). Caso o arquivo esteja ausente (como em construções limpas no GitHub runner), o Android Gradle Plugin (AGP) é instruído a utilizar a assinatura de depuração padrão nativa automaticamente, garantindo compatibilidade universal de CI/CD.
+
+2. **Mitigação de Regressão de Versão no Serviço de Atualização:**
+   - Incrementado o motor estratégico de versionamento para a versão majoritária v4.0. Ao utilizar a convenção numérica `4.0` em vez de `3.10`, evitou-se o truncamento de conversão em ponto flutuante de strings de versão do serviço (onde `3.10` seria avaliado na lógica interna do Kotlin como `3.1`, gerando uma falsa regressão frente à versão `3.9`).
+   - Sincronização completa de strings de interface no painel de TV, rodapés informativos e logs de inicialização.
+
+---
+
 ## [Build v3.9] - Versão do Aplicativo: 3.9
 **Data e Hora do Envio:** 12 de Junho de 2026, às 17:30:00 BRT / 20:30:00 UTC
 
