@@ -253,6 +253,9 @@ fun MainGameLayout(
                 } else {
                     CharacterCreationStepPanel(gameState.creationStep, gameState.playerState, viewModel)
                 }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                TvNavigationGuidePanel()
             }
 
             // Divider vertical line
@@ -1047,28 +1050,20 @@ fun AttributeRow(
     statId: String
 ) {
     var isPlusFocused by remember { mutableStateOf(false) }
-    var isRowFocused by remember { mutableStateOf(false) }
-    val rowScale by animateFloatAsState(targetValue = if (isRowFocused) 1.03f else 1.0f)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .scale(rowScale)
-            .background(if (isRowFocused) Color(0xFF1E172B) else Color.Transparent, RoundedCornerShape(4.dp))
-            .focusable(true)
-            .onFocusChanged { isRowFocused = it.isFocused }
-            .clickable {
-                viewModel.speakGenericText("Atributo $name possui $value pontos de força total.")
-            }
+            .background(Color.Transparent, RoundedCornerShape(4.dp))
             .padding(vertical = 4.dp, horizontal = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = name, 
-            color = if (isRowFocused) Color.White else Color(0xFF9E95A8), 
+            color = Color(0xFF9E95A8), 
             fontSize = 11.sp, 
-            fontWeight = if (isRowFocused) FontWeight.Bold else FontWeight.Normal
+            fontWeight = FontWeight.Normal
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(text = value.toString(), color = Color.White, fontWeight = FontWeight.Black, fontSize = 11.sp)
@@ -1088,9 +1083,9 @@ fun AttributeRow(
                         .focusable(true)
                         .onFocusChanged { isPlusFocused = it.isFocused }
                         .clickable { viewModel.distributeStat(statId) }
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
                 ) {
-                    Text(text = "+", color = Color.White, fontWeight = FontWeight.Black, fontSize = 10.sp)
+                    Text(text = "+", color = Color.White, fontWeight = FontWeight.Black, fontSize = 11.sp)
                 }
             }
         }
@@ -1208,6 +1203,84 @@ fun WorldRow(icon: ImageVector, label: String, value: String) {
             Text(text = label, color = Color.Gray, fontSize = 9.sp)
             Text(text = value, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         }
+    }
+}
+
+@Composable
+fun TvNavigationGuidePanel() {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0C0913)),
+        border = BorderStroke(1.dp, Color(0xFF261D38)),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 10.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = Color(0xFFFFD43F),
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "GUIA DO CONTROLE REMOTO (TV)",
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFFFFD43F),
+                    fontSize = 10.sp,
+                    letterSpacing = 1.sp
+                )
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            TvGuideItem("▲/▼/◄/►", "Navegação", "Use as setas direcionais do controle remoto para mover o foco brilhante entre as opções do jogo.")
+            Spacer(modifier = Modifier.height(8.dp))
+            TvGuideItem("[OK]", "Confirmar ação", "Pressione o botão central de confirmação ao focar em um botão de escolha para narrar sua decisão.")
+            Spacer(modifier = Modifier.height(8.dp))
+            TvGuideItem("🎙️ FALAR (OK)", "Comando de voz", "Foque o botão 'FALAR (OK)' no console, pressione [OK], diga seu comando verbal e pressione novamente para enviar.")
+            Spacer(modifier = Modifier.height(8.dp))
+            TvGuideItem("⚙️ CONFIG", "Central GitHub", "Foque no título do topo 'WhatIsRPG?' e pressione [OK] para configurar rep_owner, repositório ou buscar updates.")
+        }
+    }
+}
+
+@Composable
+fun TvGuideItem(key: String, title: String, desc: String) {
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .background(Color(0xFF22163A), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 4.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    text = key,
+                    color = Color(0xFFB19EFF),
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Black,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = title,
+                color = Color.White,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = desc,
+            color = Color(0xFF9E95A8),
+            fontSize = 9.sp,
+            lineHeight = 12.sp
+        )
     }
 }
 
@@ -1392,6 +1465,7 @@ fun NarrativeBox(
                 ) {
                     items(history) { entry ->
                         val isNarrator = entry.speaker == "Narrador"
+                        val isLast = entry == history.lastOrNull()
                         var isCardFocused by remember { mutableStateOf(false) }
                         val visualScale by animateFloatAsState(targetValue = if (isCardFocused) 1.02f else 1.0f)
                         
@@ -1420,9 +1494,9 @@ fun NarrativeBox(
                                         },
                                         shape = RoundedCornerShape(14.dp)
                                     )
-                                    .focusable(true)
-                                    .onFocusChanged { isCardFocused = it.isFocused }
-                                    .clickable {
+                                    .focusable(isLast)
+                                    .onFocusChanged { if (isLast) isCardFocused = it.isFocused }
+                                    .clickable(enabled = isLast) {
                                         // Voice narration play on OK selection
                                         viewModel.speakGenericText(entry.message)
                                     }
@@ -1695,7 +1769,7 @@ fun CuratedOptionsPanel(
 ) {
     Column(modifier = modifier) {
         Text(
-            text = "OPÇÕES DO MESTRE (VIBRAR DIRECIONAL):",
+            text = "OPÇÕES RÁPIDAS (DIRECIONAIS ◄ / ► DO CONTROLE • OK SELECIONA):",
             fontWeight = FontWeight.Black,
             color = Color(0xFFFFD43F),
             letterSpacing = 1.sp,

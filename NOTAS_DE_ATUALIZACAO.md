@@ -2,6 +2,27 @@
 
 Este arquivo de controle registra as modificações de build e novas implementações entregues à plataforma.
 
+## [Build v4.4] - Versão do Aplicativo: 4.4
+**Data e Hora do Envio:** 12 de Junho de 2026, às 19:02:00 BRT / 22:02:00 UTC
+
+### O que há de novo nesta Build:
+
+1. **Adequação e Refatoração Absoluta para Controle Remoto D-Pad (TV-Centric Navigation):**
+   - Eliminadas barreiras baseadas em toques/gestos nas telas de jogo, garantindo que 100% das interações ativas possuam seletores visuais de foco adaptados ao controle físico da TV.
+   
+2. **Sistema de Foco Saudável e Profilaxia contra Focus-Traps ("Tomando cuidado pra não conceder foco em áreas desnecessárias"):**
+   - **Histórico Fluido (`NarrativeBox`):** Removida a focusabilidade independente de todas as mensagens antigas do chat, resolvendo o problema no qual o usuário precisava realizar dezenas de cliques com a seta para passar pelos diálogos passados. Agora, apenas o balão mais moderno de fala é focado (facilitando reinterpretar e escutar com o botão central OK), viabilizando saltos imediatos.
+   - **Distribuição de Atributos Seculares (`AttributeRow`):** Removidos focos ociosos sobre o rótulo descritivo estático dos Atributos d'Alma, canalizando as paradas do D-pad exclusivamente no botão de ganho numérico `[+]` quando pontos extras estiverem válidos no deck.
+
+3. **Guia Detalhado e Painel Explicativo On-Screen (`TvNavigationGuidePanel`):**
+   - Desenvolvido um painel informativo contextual fixado na base do menu de status lateral esquerdo (Sidebar).
+   - O guia ilustra de forma clara e legível as ações de D-pad: **Direcionais (▲/▼/◄/►)** para mover o destaque brilhante, **OK / Confirmar** como gatilho centralizador das escolhas, **🎙️ FALAR (OK)** como acionador vocal no console e **⚙️ CONFIG** para o título WhatIsRPG? de modo a alterar repositórios em tempo real.
+
+4. **Diretrizes Rápidas do Mestre Facilitadas:**
+   - O cabeçalho das opções rápidas no rodapé central do Layout do Painel foi atualizado para `"OPÇÕES RÁPIDAS (DIRECIONAIS ◄ / ► DO CONTROLE • OK SELECIONA):"`, instruindo visualmente o usuário sobre como se deslocar horizontalmente de forma simplificada e direta.
+
+---
+
 ## [Build v4.3] - Versão do Aplicativo: 4.3
 **Data e Hora do Envio:** 12 de Junho de 2026, às 18:25:00 BRT / 21:25:00 UTC
 
