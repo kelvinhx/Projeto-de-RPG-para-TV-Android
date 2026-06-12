@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.BuildConfig
 import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,7 +38,7 @@ sealed class UpdateCheckState {
 class GameViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
 
     companion object {
-        const val CURRENT_VERSION = 4.1
+        const val CURRENT_VERSION = 4.2
     }
 
     private val context = application.applicationContext
@@ -115,6 +116,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
         val lastSeen = prefs.getFloat("last_seen_version", 0.0f)
         if (lastSeen < CURRENT_VERSION.toFloat()) {
             _showFirstRunNotification.value = true
+            viewModelScope.launch {
+                delay(10000) // Auto dismiss after 10 seconds so it is never invasive
+                _showFirstRunNotification.value = false
+            }
         }
     }
 
@@ -259,9 +264,102 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
         }
     }
 
+    /**
+     * Google-designed NLP normalization helper for speech/voice processing.
+     * Maps voice accents, speech fragments, or TV remote noise to precise, structured game intents.
+     */
+    fun normalizeSpokenCommand(command: String): String {
+        val trimmed = command.trim().replace(".", "").replace(",", "").replace("?", "").replace("!", "").lowercase(Locale.getDefault())
+        if (trimmed.isEmpty()) return ""
+
+        // 1. Check for starting adventure
+        if (trimmed.contains("comeco") || trimmed.contains("comecar") || trimmed.contains("começar") ||
+            trimmed.contains("jornada") || trimmed.contains("iniciar") || trimmed.contains("vamos") || trimmed.contains("comece")) {
+            return "Vamos começar a jornada"
+        }
+        
+        // 2. Check for classes
+        if (trimmed.contains("guerreiro") || trimmed.contains("combater") || trimmed.contains("soldado") || trimmed.contains("espada")) {
+            return "Guerreiro"
+        }
+        if (trimmed.contains("mago") || trimmed.contains("feiticeiro") || trimmed.contains("magia") || trimmed.contains("bruxo") || trimmed.contains("feitiço")) {
+            return "Mago"
+        }
+        if (trimmed.contains("hibrido") || trimmed.contains("híbrido") || trimmed.contains("misto") || trimmed.contains("assassino") || trimmed.contains("guerreiro mago")) {
+            return "Híbrido"
+        }
+        
+        // 3. Check for races
+        if (trimmed.contains("elfo") || trimmed.contains("sombra") || trimmed.contains("lunar")) {
+            return "Elfo Negro"
+        }
+        if (trimmed.contains("anao") || trimmed.contains("anão") || trimmed.contains("ferro") || trimmed.contains("pedra") || trimmed.contains("metal")) {
+            return "Anão de Ferro"
+        }
+        if (trimmed.contains("humano") || trimmed.contains("humanidade") || trimmed.contains("adaptabilidade")) {
+            return "Humano"
+        }
+        
+        // 4. Check for subclasses
+        if (trimmed.contains("guerreiro gravitacional") || (trimmed.contains("guerreiro") && trimmed.contains("gravitacional")) || trimmed.contains("peso")) {
+            return "Guerreiro Gravitacional"
+        }
+        if (trimmed.contains("mago sombrio lunar") || (trimmed.contains("mago") && (trimmed.contains("sombrio") || trimmed.contains("lunar"))) || trimmed.contains("luas")) {
+            return "Mago Sombrio Lunar"
+        }
+        if (trimmed.contains("hibrido arcano") || trimmed.contains("híbrido arcano") || (trimmed.contains("hibrido") && trimmed.contains("arcano")) || trimmed.contains("lâmina")) {
+            return "Híbrido Arcano"
+        }
+        
+        // 5. Gender choices
+        if (trimmed.contains("feminino") || trimmed.contains("mulher") || trimmed.contains("ela")) {
+            return "Feminino"
+        }
+        if (trimmed.contains("masculino") || trimmed.contains("homem") || trimmed.contains("ele")) {
+            return "Masculino"
+        }
+        if (trimmed.contains("binario") || trimmed.contains("não-binário") || trimmed.contains("não binário")) {
+            return "Não-Binário"
+        }
+        
+        // 6. Sexuality choices
+        if (trimmed.contains("hetero") || trimmed.contains("heterossexual")) {
+            return "Heterossexual"
+        }
+        if (trimmed.contains("homo") || trimmed.contains("homossexual") || trimmed.contains("gay") || trimmed.contains("lesbica") || trimmed.contains("lésbica")) {
+            return "Homossexual"
+        }
+        if (trimmed.contains("bi") || trimmed.contains("bissexual")) {
+            return "Bissexual"
+        }
+        if (trimmed.contains("pan") || trimmed.contains("pansexual")) {
+            return "Pansexual"
+        }
+        
+        // 7. General navigation
+        if (trimmed.contains("explorar") || trimmed.contains("olhar") || trimmed.contains("arredores")) {
+            return "Explorar arredores"
+        }
+        if (trimmed.contains("grimorio") || trimmed.contains("inspecionar") || trimmed.contains("livro") || trimmed.contains("sussurro")) {
+            return "Inspecionar grimório"
+        }
+        if (trimmed.contains("inventario") || trimmed.contains("itens") || trimmed.contains("mochila") || trimmed.contains("bolsa") || trimmed.contains("guardado")) {
+            return "Verificar inventário"
+        }
+        if (trimmed.contains("reiniciar") || trimmed.contains("resetar") || trimmed.contains("limpar") || trimmed.contains("recomeçar")) {
+            return "Reiniciar jogo"
+        }
+
+        return command
+    }
+
     // Process player action based on character creation workflow or general GM running loop
     private suspend fun handlePlayerAction(rawAction: String) {
-        val action = rawAction.trim()
+        val action = normalizeSpokenCommand(rawAction.trim())
+        if (action.isBlank()) {
+            _audioState.value = AudioState.Idle
+            return
+        }
         val current = _gameState.value
         
         // Feed action to current history
@@ -416,10 +514,21 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
         val updatedHistory = current.history.toMutableList()
         updatedHistory.add(LogEntry(speaker = "Narrador", message = text))
 
+        // Ensure we always have predefined, interactive options across all screens
+        val finalOptions = if (tempOptions.isEmpty()) {
+            when (nextStep) {
+                "NOME" -> listOf("Aethelgard", "Vaelen Sombra", "Elysia Lunar", "Garrick", "Serafina Sábia")
+                "APARENCIA" -> listOf("Alto, armadura rústica e cicatriz", "Estatura ágil com olhos lunares", "Manto sombrio com capuz")
+                else -> listOf("Avançar na jornada", "Inspecionar grimório", "Explorar arredores")
+            }
+        } else {
+            tempOptions
+        }
+
         _gameState.value = current.copy(
             creationStep = nextStep,
             history = updatedHistory,
-            options = tempOptions
+            options = finalOptions
         )
         _audioState.value = AudioState.Idle
         speakOutLoud(text)

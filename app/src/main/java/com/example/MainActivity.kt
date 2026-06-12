@@ -379,7 +379,7 @@ fun GameTitleSection(onSettingsClick: () -> Unit) {
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "O ECO DA PODRIDÃO v4.1",
+                text = "O ECO DA PODRIDÃO v4.2",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = if (isHeaderFocused) Color.White else Color(0xFF8A6BFF),
@@ -1747,6 +1747,7 @@ fun VersionNotificationPrompt(onDismiss: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
+            .clickable { onDismiss() } // Make entire card clickable for effortless dismissal
             .testTag("version_update_notification_card")
     ) {
         Row(
@@ -1774,7 +1775,7 @@ fun VersionNotificationPrompt(onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(
-                        text = "NOVA VERSÃO INSTALADA! (v4.1)",
+                        text = "NOVA VERSÃO INSTALADA! (v4.2)",
                         color = Color(0xFFFFD43F),
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 14.sp,
@@ -1782,7 +1783,7 @@ fun VersionNotificationPrompt(onDismiss: () -> Unit) {
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Fim dos problemas de compilação! Corrigimos o erro de inicialização do KSP (NullPointerException) ajustando a estratégia de compilação do Kotlin no arquivo gradle.properties.",
+                        text = "Aprimoramos o som do microfone com ganho digital de 3.5x e filtros inteligentes do Google NLP para reconhecimento instantâneo! Além disso, as opções rápidas agora aparecem em todos os setores do jogo e as notificações se auto-encerram em 10 segundos.",
                         color = Color.White,
                         fontSize = 12.sp,
                         lineHeight = 18.sp
@@ -2120,7 +2121,7 @@ fun SettingsAndUpdatesDialog(
                     
                     // Lower right footer
                     Text(
-                        text = "WhatIsRPG? v4.1 • Conectado à rede do GitHub em tempo real",
+                        text = "WhatIsRPG? v4.2 • Conectado à rede do GitHub em tempo real",
                         color = Color.DarkGray,
                         fontSize = 10.sp,
                         textAlign = TextAlign.End,

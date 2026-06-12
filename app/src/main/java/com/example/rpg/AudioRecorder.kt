@@ -103,9 +103,9 @@ class AudioRecorder(private val context: Context) {
         var voiceDetected = false
         var consecutiveSilenceFrames = 0
         
-        // Calibrated thresholds for average living room ambient noise
-        val voiceRmsThreshold = 600.0 // RMS above this is classified as active player voice
-        val silenceRmsThreshold = 250.0 // RMS below this is classified as silence / pause
+        // Calibrated thresholds for average living room ambient noise (with gain boost applied)
+        val voiceRmsThreshold = 200.0 // RMS above this is classified as active player voice
+        val silenceRmsThreshold = 90.0 // RMS below this is classified as silence / pause
         
         // Buffer read duration helper: buffer size of 2048 at 16kHz 16bit mono is ~64ms of audio
         // 1.5 seconds of silence ~ 24-28 consecutive silent frames
@@ -117,6 +117,18 @@ class AudioRecorder(private val context: Context) {
             while (isRecording) {
                 val read = audioRecord?.read(data, 0, bufferSize) ?: -1
                 if (read > 0) {
+                    // Apply a software digital gain amplification (3.5x boost) to capture low-level vocal input
+                    val gainFactor = 3.5f
+                    for (i in 0 until read step 2) {
+                        if (i + 1 < read) {
+                            var sample = ((data[i + 1].toInt() shl 8) or (data[i].toInt() and 0xFF)).toShort().toFloat()
+                            sample *= gainFactor
+                            val clamped = sample.coerceIn(-32768f, 32767f).toInt().toShort()
+                            data[i] = (clamped.toInt() and 0xFF).toByte()
+                            data[i + 1] = ((clamped.toInt() shr 8) and 0xFF).toByte()
+                        }
+                    }
+
                     os.write(data, 0, read)
                     totalRecordedFrames++
 

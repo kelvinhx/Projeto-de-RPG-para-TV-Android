@@ -2,6 +2,31 @@
 
 Este arquivo de controle registra as modificações de build e novas implementações entregues à plataforma.
 
+## [Build v4.2] - Versão do Aplicativo: 4.2
+**Data e Hora do Envio:** 12 de Junho de 2026, às 18:10:00 BRT / 21:10:00 UTC
+
+### O que há de novo nesta Build:
+
+1. **Amplificação Digital de Áudio (Ganho de 3.5x) para Captação Total do Microfone:**
+   - Corrigido o problema em que o som vindo do microfone do controle remoto não era identificado satisfatoriamente devido aos baixos níveis de captação padrão de hardware Android TV.
+   - Implementado um pré-processador de ganho digital por software em `AudioRecorder.kt` que amplifica o stream de bytes PCM brutos no buffer de gravação em **3.5x (350% de ganho)** antes que a potência RMS seja medida e o arquivo `.wav` seja compactado e enviado para processamento.
+   - Calibrados os limiares de detecção dinâmica de volume por voz (Voice Activity Detection - VAD) no ambiente residencial típico, reduzindo o limiar de ativação de fala (`voiceRmsThreshold`) de `600.0` para `200.0` e o limiar de silêncio (`silenceRmsThreshold`) para `90.0`. Isto garante que o sistema capte "total totalmente" sussurros ou vozes baixas vindas do dispositivo.
+
+2. **Aprimoramento de Controle de Voz Estilo Google NLP (Fuzzy Intent Mapping):**
+   - Introduzida uma camada de processamento de linguagem natural heurística baseada nos padrões do Google Assistente diretamente no `GameViewModel`.
+   - Conversões fonéticas e textuais tratam as variações típicas de fala em português (remoção de pontuações, normalização para caixa baixa, tratamento de plurais truncados) e fazem um mapeamento semântico dinâmico para garantir o sucesso das criações do personagem e as ações gerais de RPG mesmo diante de leves furos na transcrição gerada pelo ar condicionado ou ruído de TV.
+
+3. **Opções Interativas Predefinidas em 100% dos Setores do Jogo:**
+   - Atendida a diretriz de exibição ininterrupta de sugestões estruturadas na tela para que o jogo sempre ofereça saídas por D-pad, em adição ao controle vocal direto.
+   - Mesmo nas telas de digitação manual de nome e descrição física do herói (etapas `NOME` e `APARENCIA` da criação de personagem), o console agora exibe seleções e sugestões elegantes prontas para serem selecionadas com o controle remoto (ajudando a prosseguir caso o usuário esteja em ambientes barulhentos).
+
+4. **Notificação de Inicialização Altamente Amigável e Não Invasiva:**
+   - Solucionado o travamento da notificação que persistia no topo da interface.
+   - Toda a estrutura de `Card` do `VersionNotificationPrompt` na `MainActivity.kt` passou a ser detectável por cliques de forma elástica, permitindo que cliques ou toques em qualquer área da mensagem a descartem instintivamente.
+   - Adicionada de forma profilática uma lógica de autodescarte por coroutine que apaga o balão de alerta de modo suave após **10 segundos** do início da aplicação, prevenindo de antemão que qualquer bloqueio visual ou focus-trap atrapalhe o fluxo de jogabilidade na Android TV.
+
+---
+
 ## [Build v4.1] - Versão do Aplicativo: 4.1
 **Data e Hora do Envio:** 12 de Junho de 2026, às 17:50:00 BRT / 20:50:00 UTC
 
