@@ -2,6 +2,21 @@
 
 Este arquivo de controle registra as modificações de build e novas implementações entregues à plataforma.
 
+## [Build v4.1] - Versão do Aplicativo: 4.1
+**Data e Hora do Envio:** 12 de Junho de 2026, às 17:50:00 BRT / 20:50:00 UTC
+
+### O que há de novo nesta Build:
+
+1. **Correção do Erro Crítico Kotlin/KSP no GitHub Actions (IntelliJ OpenAPI ClassNotFound/NPE Fix):**
+   - Corrigido o erro fatal durante a compilação do KSP no GitHub: `NullPointerException: Cannot invoke ksp.com.intellij.openapi.application.Application.getService() because getApplication() is null`.
+   - Identificado que o parâmetro `kotlin.compiler.execution.strategy=in-process` em `gradle.properties` forçava a execução do compilador Kotlin diretamente sob o processo principal do Gradle. Isso prevenia que o KSP 2.x inicializasse a infraestrutura do compilador IntelliJ corretamente devido ao isolamento do ClassLoader do Gradle.
+   - Modificado o arquivo `gradle.properties` para comentar a estratégia `in-process`, restabelecendo a execução nativa baseada em `daemon` (out-of-process). Isso isola perfeitamente o compilador Kotlin com KSP, solucionando o crash de compilação em builds limpas (clean builds) remotas.
+
+2. **Incremento Estável para a Versão 4.1:**
+   - Atualizados todos os cabeçalhos de sistema, rodapés no console da Android TV, strings de notificação e constantes internas do `GameViewModel` para a nova release v4.1, garantindo consistência total na telemetria do aplicativo.
+
+---
+
 ## [Build v4.0] - Versão do Aplicativo: 4.0
 **Data e Hora do Envio:** 12 de Junho de 2026, às 17:40:00 BRT / 20:40:00 UTC
 
