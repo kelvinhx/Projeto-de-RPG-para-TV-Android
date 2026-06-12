@@ -2,6 +2,24 @@
 
 Este arquivo de controle registra as modificações de build e novas implementações entregues à plataforma.
 
+## [Build v3.8] - Versão do Aplicativo: 3.8
+**Data e Hora do Envio:** 12 de Junho de 2026, às 17:15:00 BRT / 20:15:00 UTC
+
+### O que há de novo nesta Build:
+
+1. **Fluidez Dinâmica com Animações Inteligentes (Smooth Collapsible Flow):**
+   - Integrado o modificador `.animateContentSize()` do Jetpack Compose sob todos os painéis e sanfonas de dados retráteis (Painel do Herói, Atributos de Alma, Grimório Secular, Sinfonia do Mundo e Sobreviventes).
+   - Agora, a expansão e o recolhimento das seções laterais ocorrem por meio de uma transição deslizante ultra-suave, extinguindo transições abruptas e proporcionando um visual premium em telas grandes e TVs de 32" a 75".
+
+2. **Reforço de Segurança e Sincronia de Modelos em Tempo Real:**
+   - Realizada auditoria profunda nos mapeamentos estruturais do banco de dados Room local para assegurar compatibilidade absoluta de dados ao ler e serializar itens do inventário, magias do grimório e logs narrativos, eliminando travamentos de banco durante grandes saltos de turno.
+   - Otimizada a inicialização resiliente do Text-to-Speech (TTS) nativo e sintonizador de áudio, provendo respostas mais velozes e fluidas guiadas pelos comandos direcionais do controle e por cliques nos balões narrativos.
+
+3. **Sincronia Global de Versão (GitHub Pipeline Alignment):**
+   - Todas as instâncias internas de versão no Activity principal, rodapé de sistema, prompts de popups e constantes de lógica do ViewModel foram consolidadas rigorosamente sob a nova release 3.8.
+
+---
+
 ## [Build v3.7] - Versão do Aplicativo: 3.7
 **Data e Hora do Envio:** 12 de Junho de 2026, às 14:35:00 BRT / 17:35:00 UTC
 

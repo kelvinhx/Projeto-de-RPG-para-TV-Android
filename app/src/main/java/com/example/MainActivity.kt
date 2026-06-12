@@ -11,6 +11,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -378,7 +379,7 @@ fun GameTitleSection(onSettingsClick: () -> Unit) {
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "O ECO DA PODRIDÃO v3.7",
+                text = "O ECO DA PODRIDÃO v3.8",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = if (isHeaderFocused) Color.White else Color(0xFF8A6BFF),
@@ -538,6 +539,7 @@ fun PlayerStatsView(player: PlayerState, viewModel: GameViewModel) {
                     " Seu nome é ${player.name}, classe ${player.className}, nível ${player.level}."
                 )
             }
+            .animateContentSize()
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -753,6 +755,7 @@ fun PlayerAttributesView(player: PlayerState, viewModel: GameViewModel) {
                     " Você possui ${player.unassignedPoints} pontos livres para distribuir."
                 )
             }
+            .animateContentSize()
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -857,6 +860,7 @@ fun PlayerGrimoireView(player: PlayerState, viewModel: GameViewModel) {
                     " Você conhece ${player.grimoire.size} feitiços arcanos celestes."
                 )
             }
+            .animateContentSize()
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -1083,6 +1087,7 @@ fun WorldStatusView(world: WorldState, viewModel: GameViewModel) {
                     "Nível de podridão em ${world.rotLevel}%."
                 )
             }
+            .animateContentSize()
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -1196,6 +1201,7 @@ fun ActiveNpcListView(npcs: List<NpcState>, viewModel: GameViewModel) {
                     " Há ${npcs.size} personagens na sua proximidade."
                 )
             }
+            .animateContentSize()
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -1768,7 +1774,7 @@ fun VersionNotificationPrompt(onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(
-                        text = "NOVA VERSÃO INSTALADA! (v3.7)",
+                        text = "NOVA VERSÃO INSTALADA! (v3.8)",
                         color = Color(0xFFFFD43F),
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 14.sp,
@@ -1776,7 +1782,7 @@ fun VersionNotificationPrompt(onDismiss: () -> Unit) {
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Implementado o novo Centro de Atualizações em tempo real integrado ao GitHub! Agora ficou fácil verificar novas builds e correções direto do seu console de TV.",
+                        text = "Integramos transições ultra-fluidas com animação nos painéis laterais retráteis da TV e aprimoramos o fluxo de comandos de controle! Navegue e jogue de modo mais ágil e imersivo.",
                         color = Color.White,
                         fontSize = 12.sp,
                         lineHeight = 18.sp
@@ -2114,7 +2120,7 @@ fun SettingsAndUpdatesDialog(
                     
                     // Lower right footer
                     Text(
-                        text = "WhatIsRPG? v3.7 • Conectado à rede do GitHub em tempo real",
+                        text = "WhatIsRPG? v3.8 • Conectado à rede do GitHub em tempo real",
                         color = Color.DarkGray,
                         fontSize = 10.sp,
                         textAlign = TextAlign.End,
