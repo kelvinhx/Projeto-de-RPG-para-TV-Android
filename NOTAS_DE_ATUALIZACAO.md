@@ -2,6 +2,24 @@
 
 Este arquivo de controle registra as modificações de build e novas implementações entregues à plataforma.
 
+## [Build v3.7] - Versão do Aplicativo: 3.7
+**Data e Hora do Envio:** 12 de Junho de 2026, às 14:35:00 BRT / 17:35:00 UTC
+
+### O que há de novo nesta Build:
+
+1. **Acordeões Retráteis Otimizados para TV e D-Pad D-Pad:**
+   - Adicionada estrutura de visualização compacta/expandida para todos os painéis laterais (Status do Herói, Atributos de Alma, Grimório Secular, Sinfonia do Mundo, e Sobreviventes).
+   - Ocultamento inteligente de listas extensas de submenus por padrão para que o visor da TV de 32" mantenha o máximo de espaço livre para a leitura da narrativa do jogo.
+
+2. **Interatividade Fluida e Direta (D-Pad Action Flow):**
+   - Integrada a capacidade de utilizar itens e lançar feitiços diretamente clicando nos submenus correspondentes. Clicar em um item da mochila ativa o comando `usar o item <nome>`, enquanto clicar em um feitiço ativo no Grimório engatilha a conjuração instantânea `Conjurar a magia <nome>`.
+   - Adicionados controles focáveis `[+]` individuais ao lado de cada atributo (FOR, AGI, INT, VIT, PER, WIL) sempre que houver pontos não atribuídos disponíveis para distribuição.
+
+3. **Feedback Falado Integrado por Comando de Foco:**
+   - Cada expansão, redução de painéis de status ou acúmulo de pontos livre dispara um feedback falado dinâmico do Narrador e leitor vocal, eliminando totalmente a barreira de digitação textual do console.
+
+---
+
 ## [Build v3.6] - Versão do Aplicativo: 3.6
 **Data e Hora do Envio:** 12 de Junho de 2026, às 14:15:00 BRT / 17:15:00 UTC
 

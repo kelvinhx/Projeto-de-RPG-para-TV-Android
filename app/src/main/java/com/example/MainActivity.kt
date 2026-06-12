@@ -241,9 +241,13 @@ fun MainGameLayout(
                 // Conditionally render player dashboard or creation tracker with high-contrast minimalism
                 if (gameState.creationStep == "RUNNING") {
                     PlayerStatsView(gameState.playerState, viewModel)
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
+                    PlayerAttributesView(gameState.playerState, viewModel)
+                    Spacer(modifier = Modifier.height(10.dp))
+                    PlayerGrimoireView(gameState.playerState, viewModel)
+                    Spacer(modifier = Modifier.height(10.dp))
                     WorldStatusView(gameState.worldState, viewModel)
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     ActiveNpcListView(gameState.npcs, viewModel)
                 } else {
                     CharacterCreationStepPanel(gameState.creationStep, gameState.playerState, viewModel)
@@ -374,7 +378,7 @@ fun GameTitleSection(onSettingsClick: () -> Unit) {
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "O ECO DA PODRIDÃO v3.6",
+                text = "O ECO DA PODRIDÃO v3.7",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = if (isHeaderFocused) Color.White else Color(0xFF8A6BFF),
@@ -514,162 +518,460 @@ fun CreationStatItem(label: String, value: String) {
 
 @Composable
 fun PlayerStatsView(player: PlayerState, viewModel: GameViewModel) {
-    var isStatsFocused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(targetValue = if (isStatsFocused) 1.01f else 1.0f)
+    var isExpanded by remember { mutableStateOf(true) }
+    var isHeaderFocused by remember { mutableStateOf(false) }
+    val headerScale by animateFloatAsState(targetValue = if (isHeaderFocused) 1.02f else 1.0f)
 
     Card(
         colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0D15)),
         shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, if (isStatsFocused) Color(0xFFFFD43F) else Color(0xFF1A1626)),
+        border = BorderStroke(1.dp, if (isHeaderFocused) Color(0xFFFFD43F) else Color(0xFF1E172B)),
         modifier = Modifier
             .fillMaxWidth()
-            .scale(scale)
+            .scale(headerScale)
             .focusable(true)
-            .onFocusChanged { isStatsFocused = it.isFocused }
+            .onFocusChanged { isHeaderFocused = it.isFocused }
             .clickable {
+                isExpanded = !isExpanded
                 viewModel.speakGenericText(
-                    "status do Herói: nível ${player.level} com ${player.hp} de vida e ${player.mp} de mana. " +
-                    "Você possui ${player.gold} moedas de ouro em seu bolso."
+                    "Painel do herói. " + (if (isExpanded) "Expandido." else "Recolhido.") + 
+                    " Seu nome é ${player.name}, classe ${player.className}, nível ${player.level}."
                 )
             }
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            // Identity Header with Speak triggers
+        Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = player.name.uppercase(),
+                        text = "👤 ${player.name.uppercase()}",
                         fontWeight = FontWeight.Black,
                         color = Color.White,
-                        fontSize = 16.sp,
+                        fontSize = 13.sp,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = 120.dp)
                     )
-                    Text(
-                        text = "${player.race} • ${player.className}",
-                        color = Color(0xFF8A6BFF),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFF20162F), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "Lvl ${player.level}",
+                            color = Color(0xFFFFD43F),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
-                Box(
-                    modifier = Modifier
-                        .background(Color(0xFF20162F), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "LVL ${player.level}",
-                        color = Color(0xFFFFD43F),
-                        fontSize = 10.sp,
+                        text = if (isExpanded) "RECOLHER" else "DETALHES",
+                        color = if (isHeaderFocused) Color(0xFFFFD43F) else Color(0xFF8A6BFF),
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Black
                     )
-                }
-                if (isStatsFocused) {
-                    Spacer(modifier = Modifier.width(6.dp))
                     Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Ouvir",
-                        tint = Color(0xFF45FFB2),
+                        imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = if (isHeaderFocused) Color(0xFFFFD43F) else Color(0xFF8A6BFF),
                         modifier = Modifier.size(16.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            if (!isExpanded) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(6.dp).background(Color(0xFFFF4E4E), CircleShape))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = "${player.hp}/${player.maxHp} HP", color = Color(0xFFFF4E4E), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(6.dp).background(Color(0xFF3B66FF), CircleShape))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = "${player.mp}/${player.maxMp} MP", color = Color(0xFF3B66FF), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD43F), modifier = Modifier.size(11.dp))
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text(text = "${player.gold}", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
 
-            // XP Progression Line
-            Text(
-                text = "EXP: ${player.experience} / ${player.maxExperience} XP",
-                fontSize = 9.sp,
-                color = Color(0xFF9E95A8),
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            LinearProgressIndicator(
-                progress = { player.experience.toFloat() / player.maxExperience.toFloat() },
-                color = Color(0xFF8A6BFF),
-                trackColor = Color(0xFF0A080D),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(CircleShape)
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Vitality Gauges
-            StatGauge("HP / VITALIDADE", player.hp, player.maxHp, Color(0xFFFF4E4E))
-            Spacer(modifier = Modifier.height(8.dp))
-            StatGauge("MP / MANA CELSTE", player.mp, player.maxMp, Color(0xFF3B66FF))
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Economy Row
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = "Pessas de Ouro",
-                    tint = Color(0xFFFFD43F),
-                    modifier = Modifier.size(13.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(10.dp))
+                
                 Text(
-                    text = "${player.gold} PEÇAS DE OURO",
-                    color = Color.White,
-                    fontWeight = FontWeight.ExtraBold,
+                    text = "${player.race} • ${player.className} (${player.subclass})",
+                    color = Color(0xFFB19EFF),
                     fontSize = 11.sp,
-                    letterSpacing = 0.5.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Core Attributes Checklist
-            Text(
-                text = "ATRIBUTOS CORE (SELECIONE PARA DISTRIBUIR OU FALAR)",
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Black,
-                color = Color(0xFFFFD43F),
-                letterSpacing = 0.5.sp
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-
-            AttributeRow("FORÇA (FOR)", player.attributes.strength, player.unassignedPoints > 0, viewModel, "FOR")
-            AttributeRow("AGILIDADE (AGI)", player.attributes.agility, player.unassignedPoints > 0, viewModel, "AGI")
-            AttributeRow("INTELIGÊNCIA (INT)", player.attributes.intelligence, player.unassignedPoints > 0, viewModel, "INT")
-            AttributeRow("VITALIDADE (VIT)", player.attributes.vitality, player.unassignedPoints > 0, viewModel, "VIT")
-            AttributeRow("PERCEPÇÃO (PER)", player.attributes.perception, player.unassignedPoints > 0, viewModel, "PER")
-            AttributeRow("VONTADE (WIL)", player.attributes.willpower, player.unassignedPoints > 0, viewModel, "WIL")
-
-            if (player.unassignedPoints > 0) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Você tem ${player.unassignedPoints} pontos livres! Distribua acima.",
-                    color = Color.Green,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
-            }
 
-            // Scars and Titles display if exists
-            if (player.titles.isNotEmpty()) {
+                Text(
+                    text = "EXP: ${player.experience} / ${player.maxExperience} XP",
+                    fontSize = 9.sp,
+                    color = Color(0xFF9E95A8),
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+                LinearProgressIndicator(
+                    progress = { player.experience.toFloat() / player.maxExperience.toFloat() },
+                    color = Color(0xFF8A6BFF),
+                    trackColor = Color(0xFF0A080D),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(CircleShape)
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                StatGauge("HP / VITALIDADE", player.hp, player.maxHp, Color(0xFFFF4E4E))
+                Spacer(modifier = Modifier.height(6.dp))
+                StatGauge("MP / ENERGIA CELESTE", player.mp, player.maxMp, Color(0xFF3B66FF))
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD43F), modifier = Modifier.size(13.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "${player.gold} PEÇAS DE OURO",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
+                    )
+                }
+
+                if (player.titles.isNotEmpty() || player.scars.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "HISTÓRIA E CICATRIZES DO HERÓI",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFF8A6BFF),
+                        letterSpacing = 0.5.sp
+                    )
+                    player.titles.forEach { title ->
+                        Text(text = "🛡️ \"$title\"", color = Color.LightGray, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    player.scars.forEach { scar ->
+                        Text(text = "🤕 $scar", color = Color(0xFFFF8B8B), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "TÍTULOS RECONHECIDOS",
+                    text = "🎒 INVENTÁRIO (CLIQUE PARA USAR ITEM)",
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Black,
-                    color = Color(0xFF8A6BFF),
+                    color = Color(0xFFFFD43F),
                     letterSpacing = 0.5.sp
                 )
-                player.titles.take(2).forEach { title ->
-                    Text(text = "⚔️ \"$title\"", color = Color.LightGray, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Spacer(modifier = Modifier.height(4.dp))
+                if (player.inventory.isEmpty()) {
+                    Text(text = "Mochila vazia.", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp))
+                } else {
+                    player.inventory.forEach { item ->
+                        var isItemFocused by remember { mutableStateOf(false) }
+                        val itemScale by animateFloatAsState(targetValue = if (isItemFocused) 1.03f else 1.0f)
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isItemFocused) Color(0xFF221633) else Color(0xFF110E16)
+                            ),
+                            border = BorderStroke(1.dp, if (isItemFocused) Color(0xFFFFD43F) else Color(0xFF1E172B)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 3.dp)
+                                .scale(itemScale)
+                                .focusable(true)
+                                .onFocusChanged { isItemFocused = it.isFocused }
+                                .clickable {
+                                    viewModel.enterCommandLine("usar o item ${item.name}")
+                                    viewModel.speakGenericText("Utilizando item ${item.name}!")
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(text = item.name, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 11.sp)
+                                    Text(text = item.description, color = Color(0xFF9E95A8), fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .background(Color(0xFF20162F), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                                ) {
+                                    Text(text = item.effect ?: "Item", color = Color(0xFF45FFB2), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PlayerAttributesView(player: PlayerState, viewModel: GameViewModel) {
+    var isExpanded by remember { mutableStateOf(false) }
+    var isHeaderFocused by remember { mutableStateOf(false) }
+    val headerScale by animateFloatAsState(targetValue = if (isHeaderFocused) 1.02f else 1.0f)
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0D15)),
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, if (isHeaderFocused) Color(0xFF8A6BFF) else Color(0xFF1E172B)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(headerScale)
+            .focusable(true)
+            .onFocusChanged { isHeaderFocused = it.isFocused }
+            .clickable {
+                isExpanded = !isExpanded
+                viewModel.speakGenericText(
+                    "Atributos da alma. " + (if (isExpanded) "Expandido." else "Recolhido.") +
+                    " Você possui ${player.unassignedPoints} pontos livres para distribuir."
+                )
+            }
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "⚔️ ATRIBUTOS D'ALMA",
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFFFFD43F),
+                        fontSize = 11.sp,
+                        letterSpacing = 0.5.sp
+                    )
+                    if (player.unassignedPoints > 0) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .background(Color(0xFF122C1A), RoundedCornerShape(6.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "+${player.unassignedPoints} PT",
+                                color = Color.Green,
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = if (isExpanded) "RECOLHER" else "EXPANDIR",
+                        color = if (isHeaderFocused) Color(0xFFFFD43F) else Color(0xFF8A6BFF),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = if (isHeaderFocused) Color(0xFFFFD43F) else Color(0xFF8A6BFF),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            if (!isExpanded) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "FOR ${player.attributes.strength} · AGI ${player.attributes.agility} · INT ${player.attributes.intelligence} · VIT ${player.attributes.vitality} · PER ${player.attributes.perception} · WIL ${player.attributes.willpower}",
+                    color = Color.LightGray,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(10.dp))
+                
+                AttributeRow("FORÇA (FOR)", player.attributes.strength, player.unassignedPoints > 0, viewModel, "FOR")
+                AttributeRow("AGILIDADE (AGI)", player.attributes.agility, player.unassignedPoints > 0, viewModel, "AGI")
+                AttributeRow("INTELIGÊNCIA (INT)", player.attributes.intelligence, player.unassignedPoints > 0, viewModel, "INT")
+                AttributeRow("VITALIDADE (VIT)", player.attributes.vitality, player.unassignedPoints > 0, viewModel, "VIT")
+                AttributeRow("PERCEPÇÃO (PER)", player.attributes.perception, player.unassignedPoints > 0, viewModel, "PER")
+                AttributeRow("VONTADE (WIL)", player.attributes.willpower, player.unassignedPoints > 0, viewModel, "WIL")
+
+                if (player.unassignedPoints > 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Você tem ${player.unassignedPoints} pontos livres! Clique no [+] acima.",
+                        color = Color.Green,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 9.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PlayerGrimoireView(player: PlayerState, viewModel: GameViewModel) {
+    var isExpanded by remember { mutableStateOf(false) }
+    var isHeaderFocused by remember { mutableStateOf(false) }
+    val headerScale by animateFloatAsState(targetValue = if (isHeaderFocused) 1.02f else 1.0f)
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0D15)),
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, if (isHeaderFocused) Color(0xFF8A6BFF) else Color(0xFF1E172B)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(headerScale)
+            .focusable(true)
+            .onFocusChanged { isHeaderFocused = it.isFocused }
+            .clickable {
+                isExpanded = !isExpanded
+                viewModel.speakGenericText(
+                    "Grimório de magias. " + (if (isExpanded) "Expandido." else "Recolhido.") +
+                    " Você conhece ${player.grimoire.size} feitiços arcanos celestes."
+                )
+            }
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "📜 GRIMÓRIO SECULAR",
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFFFFD43F),
+                        fontSize = 11.sp,
+                        letterSpacing = 0.5.sp
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFF2C243B), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "${player.grimoire.size} FEITIÇOS",
+                            color = Color(0xFFB19EFF),
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = if (isExpanded) "RECOLHER" else "EXPANDIR",
+                        color = if (isHeaderFocused) Color(0xFFFFD43F) else Color(0xFF8A6BFF),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = if (isHeaderFocused) Color(0xFFFFD43F) else Color(0xFF8A6BFF),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            if (!isExpanded) {
+                Spacer(modifier = Modifier.height(6.dp))
+                if (player.grimoire.isEmpty()) {
+                    Text(text = "Nenhum feitiço inscrito.", color = Color.DarkGray, fontSize = 10.sp)
+                } else {
+                    Text(
+                        text = player.grimoire.joinToString(" · ") { it.name },
+                        color = Color.LightGray,
+                        fontSize = 10.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(10.dp))
+                if (player.grimoire.isEmpty()) {
+                    Text(text = "Seu grimório está em branco. Aprenda magias com o Mestre.", color = Color.Gray, fontSize = 11.sp)
+                } else {
+                    player.grimoire.forEach { skill ->
+                        var isSkillFocused by remember { mutableStateOf(false) }
+                        val skillScale by animateFloatAsState(targetValue = if (isSkillFocused) 1.03f else 1.0f)
+                        
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSkillFocused) Color(0xFF221633) else Color(0xFF110E16)
+                            ),
+                            border = BorderStroke(1.dp, if (isSkillFocused) Color(0xFFFFD43F) else Color(0xFF1E172B)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 3.dp)
+                                .scale(skillScale)
+                                .focusable(true)
+                                .onFocusChanged { isSkillFocused = it.isFocused }
+                                .clickable {
+                                    viewModel.enterCommandLine("Conjurar a magia ${skill.name}")
+                                    viewModel.speakGenericText("Conjurando feitiço ${skill.name}!")
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(text = skill.name, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 11.sp)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .background(Color(0xFF351212), RoundedCornerShape(4.dp))
+                                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(text = "${skill.cost} MP", color = Color(0xFFFF5252), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                    Text(text = skill.description, color = Color(0xFF9E95A8), fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .background(Color(0xFF20162F), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                                ) {
+                                    Text(text = skill.type, color = Color(0xFF8A6BFF), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -760,71 +1062,96 @@ fun AttributeRow(
 
 @Composable
 fun WorldStatusView(world: WorldState, viewModel: GameViewModel) {
-    var isWorldFocused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(targetValue = if (isWorldFocused) 1.01f else 1.0f)
+    var isExpanded by remember { mutableStateOf(false) }
+    var isHeaderFocused by remember { mutableStateOf(false) }
+    val headerScale by animateFloatAsState(targetValue = if (isHeaderFocused) 1.02f else 1.0f)
 
     Card(
         colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0D15)),
         shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, if (isWorldFocused) Color(0xFFFFD43F) else Color(0xFF1A1626)),
+        border = BorderStroke(1.dp, if (isHeaderFocused) Color(0xFFFFD43F) else Color(0xFF1E172B)),
         modifier = Modifier
             .fillMaxWidth()
-            .scale(scale)
+            .scale(headerScale)
             .focusable(true)
-            .onFocusChanged { isWorldFocused = it.isFocused }
+            .onFocusChanged { isHeaderFocused = it.isFocused }
             .clickable {
+                isExpanded = !isExpanded
                 viewModel.speakGenericText(
-                    "Você está na Região de: ${world.region}. O dia está no ciclo da ${world.timeOfDay}. " +
-                    "A podridão silvestre está em ${world.rotLevel} por cento de corrupção total."
+                    "Estado do mundo vivo. " + (if (isExpanded) "Expandido." else "Recolhido.") +
+                    " Região atual de ${world.region}. Ciclo é ${world.timeOfDay}. " +
+                    "Nível de podridão em ${world.rotLevel}%."
                 )
             }
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = "ESTADO DO MUNDO VIVO",
-                    fontWeight = FontWeight.Black,
-                    color = Color(0xFFFFD43F),
-                    fontSize = 10.sp,
-                    letterSpacing = 0.5.sp
-                )
-                if (isWorldFocused) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "🌍 SINFONIA DO MUNDO",
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFFFFD43F),
+                        fontSize = 11.sp,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = if (isExpanded) "RECOLHER" else "EXPANDIR",
+                        color = if (isHeaderFocused) Color(0xFFFFD43F) else Color(0xFF8A6BFF),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black
+                    )
                     Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Ouvir",
-                        tint = Color(0xFF45FFB2),
+                        imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = if (isHeaderFocused) Color(0xFFFFD43F) else Color(0xFF8A6BFF),
                         modifier = Modifier.size(16.dp)
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(10.dp))
 
-            WorldRow(Icons.Default.Info, "Região Atual", world.region)
-            WorldRow(Icons.Default.Refresh, "Tempo e Ciclo", world.timeOfDay)
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "Podridão do Solo", color = Color(0xFFFF8B8B), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                Text(text = "${world.rotLevel}% Corrompido", color = Color(0xFFFF4E4E), fontSize = 10.sp, fontWeight = FontWeight.Black)
+            if (!isExpanded) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "${world.region} · ${world.timeOfDay}",
+                    color = Color.LightGray,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            LinearProgressIndicator(
-                progress = { world.rotLevel.toFloat() / 100f },
-                color = Color(0xFFFF4E4E),
-                trackColor = Color(0xFF0A080D),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(CircleShape)
-            )
+
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(10.dp))
+                
+                WorldRow(Icons.Default.Info, "Região Atual", world.region)
+                WorldRow(Icons.Default.Refresh, "Tempo e Ciclo", world.timeOfDay)
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "Podridão do Solo", color = Color(0xFFFF8B8B), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "${world.rotLevel}% Corrompido", color = Color(0xFFFF4E4E), fontSize = 10.sp, fontWeight = FontWeight.Black)
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                LinearProgressIndicator(
+                    progress = { world.rotLevel.toFloat() / 100f },
+                    color = Color(0xFFFF4E4E),
+                    trackColor = Color(0xFF0A080D),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(CircleShape)
+                )
+            }
         }
     }
 }
@@ -849,67 +1176,141 @@ fun WorldRow(icon: ImageVector, label: String, value: String) {
 @Composable
 fun ActiveNpcListView(npcs: List<NpcState>, viewModel: GameViewModel) {
     if (npcs.isEmpty()) return
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "SOBREVIVENTES ENCONTRADOS",
-            fontWeight = FontWeight.Black,
-            color = Color(0xFF8A6BFF),
-            fontSize = 10.sp,
-            letterSpacing = 0.5.sp,
-            modifier = Modifier.padding(vertical = 6.dp)
-        )
-        npcs.forEach { npc ->
-            var isNpcFocused by remember { mutableStateOf(false) }
-            val itemScale by animateFloatAsState(targetValue = if (isNpcFocused) 1.03f else 1.0f)
+    var isExpanded by remember { mutableStateOf(false) }
+    var isHeaderFocused by remember { mutableStateOf(false) }
+    val headerScale by animateFloatAsState(targetValue = if (isHeaderFocused) 1.02f else 1.0f)
 
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF110E16)),
-                shape = RoundedCornerShape(10.dp),
-                border = BorderStroke(1.dp, if (isNpcFocused) Color(0xFFFFD43F) else Color(0xFF1E172B)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .scale(itemScale)
-                    .focusable(true)
-                    .onFocusChanged { isNpcFocused = it.isFocused }
-                    .clickable {
-                        viewModel.speakGenericText(
-                            "Sobrevivente: ${npc.name}. ${npc.description}. " +
-                            "Seu estado emocional é ${npc.emotion}."
-                        )
-                    }
-                    .padding(vertical = 3.dp)
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0D15)),
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, if (isHeaderFocused) Color(0xFFFFD43F) else Color(0xFF1E172B)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(headerScale)
+            .focusable(true)
+            .onFocusChanged { isHeaderFocused = it.isFocused }
+            .clickable {
+                isExpanded = !isExpanded
+                viewModel.speakGenericText(
+                    "Sobreviventes. " + (if (isExpanded) "Expandido." else "Recolhido.") +
+                    " Há ${npcs.size} personagens na sua proximidade."
+                )
+            }
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    modifier = Modifier.padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = npc.name, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 11.sp)
-                            if (isNpcFocused) {
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Icon(Icons.Default.PlayArrow, contentDescription = "Ouvir", tint = Color(0xFF45FFB2), modifier = Modifier.size(12.dp))
-                            }
-                        }
-                        Text(text = npc.description, color = Color(0xFF9E95A8), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(text = "Humor: ${npc.emotion}", color = Color.Gray, fontSize = 9.sp)
-                    }
-                    // Mini affinity capsule indicator
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "👥 SOBREVIVENTES & NPCS",
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFFFFD43F),
+                        fontSize = 11.sp,
+                        letterSpacing = 0.5.sp
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
                     Box(
                         modifier = Modifier
-                            .background(
-                                if (npc.affinity >= 0) Color(0xFF122C1A) else Color(0xFF351212),
-                                CircleShape
-                            )
+                            .background(Color(0xFF2C243B), RoundedCornerShape(6.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = if (npc.affinity >= 0) "+${npc.affinity} Amizade" else "${npc.affinity} Ódio",
-                            color = if (npc.affinity >= 0) Color.Green else Color(0xFFFF5252),
+                            text = "${npcs.size} ATIVOS",
+                            color = Color(0xFF8A6BFF),
                             fontSize = 8.sp,
                             fontWeight = FontWeight.Bold
                         )
+                    }
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = if (isExpanded) "RECOLHER" else "EXPANDIR",
+                        color = if (isHeaderFocused) Color(0xFFFFD43F) else Color(0xFF8A6BFF),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = if (isHeaderFocused) Color(0xFFFFD43F) else Color(0xFF8A6BFF),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            if (!isExpanded) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = npcs.joinToString(", ") { it.name },
+                    color = Color.LightGray,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(10.dp))
+                npcs.forEach { npc ->
+                    var isNpcFocused by remember { mutableStateOf(false) }
+                    val itemScale by animateFloatAsState(targetValue = if (isNpcFocused) 1.03f else 1.0f)
+
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF110E16)),
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, if (isNpcFocused) Color(0xFFFFD43F) else Color(0xFF1E172B)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .scale(itemScale)
+                            .focusable(true)
+                            .onFocusChanged { isNpcFocused = it.isFocused }
+                            .clickable {
+                                viewModel.enterCommandLine("Falar com ${npc.name}")
+                                viewModel.speakGenericText(
+                                    "Sobrevivente: ${npc.name}. ${npc.description}. " +
+                                    "Humor actual é ${npc.emotion}."
+                                )
+                            }
+                            .padding(vertical = 3.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(text = npc.name, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 11.sp)
+                                    if (isNpcFocused) {
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Icon(Icons.Default.PlayArrow, contentDescription = "Interagir", tint = Color(0xFF45FFB2), modifier = Modifier.size(12.dp))
+                                    }
+                                }
+                                Text(text = npc.description, color = Color(0xFF9E95A8), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(text = "Humor: ${npc.emotion}", color = Color.Gray, fontSize = 9.sp)
+                            }
+                            // Mini affinity capsule indicator
+                            Box(
+                                modifier = Modifier
+                                    .background(
+                                        if (npc.affinity >= 0) Color(0xFF122C1A) else Color(0xFF351212),
+                                        CircleShape
+                                    )
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = if (npc.affinity >= 0) "+${npc.affinity} Amizade" else "${npc.affinity} Ódio",
+                                    color = if (npc.affinity >= 0) Color.Green else Color(0xFFFF5252),
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -1367,7 +1768,7 @@ fun VersionNotificationPrompt(onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(
-                        text = "NOVA VERSÃO INSTALADA! (v3.6)",
+                        text = "NOVA VERSÃO INSTALADA! (v3.7)",
                         color = Color(0xFFFFD43F),
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 14.sp,
@@ -1713,7 +2114,7 @@ fun SettingsAndUpdatesDialog(
                     
                     // Lower right footer
                     Text(
-                        text = "WhatIsRPG? v3.6 • Conectado à rede do GitHub em tempo real",
+                        text = "WhatIsRPG? v3.7 • Conectado à rede do GitHub em tempo real",
                         color = Color.DarkGray,
                         fontSize = 10.sp,
                         textAlign = TextAlign.End,

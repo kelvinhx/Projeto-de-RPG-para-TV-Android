@@ -37,7 +37,7 @@ sealed class UpdateCheckState {
 class GameViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
 
     companion object {
-        const val CURRENT_VERSION = 3.6
+        const val CURRENT_VERSION = 3.7
     }
 
     private val context = application.applicationContext
