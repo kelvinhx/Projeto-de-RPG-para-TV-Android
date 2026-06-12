@@ -19,8 +19,8 @@ data class GitHubUpdateInfo(
 
 object GitHubUpdateService {
 
-    private const val DEFAULT_OWNER = "rebeijar"
-    private const val DEFAULT_REPO = "WhatIsRPG"
+    private const val DEFAULT_OWNER = "kelvinhx"
+    private const val DEFAULT_REPO = "Projeto-de-RPG-para-TV-Android"
     private const val FILE_PATH = "NOTAS_DE_ATUALIZACAO.md"
 
     private val client = OkHttpClient.Builder()

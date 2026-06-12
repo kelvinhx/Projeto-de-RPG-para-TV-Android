@@ -2,6 +2,25 @@
 
 Este arquivo de controle registra as modificações de build e novas implementações entregues à plataforma.
 
+## [Build v3.9] - Versão do Aplicativo: 3.9
+**Data e Hora do Envio:** 12 de Junho de 2026, às 17:30:00 BRT / 20:30:00 UTC
+
+### O que há de novo nesta Build:
+
+1. **Sincronia Total e Padrão Nativo com o Repositório GitHub (Fork Alignment):**
+   - Configurados e alinhados todos os parâmetros de repositório padrão nas classes internas (`GitHubUpdateService`, `GameViewModel` e tela de UI de Configurações no `MainActivity`) para mapear nativamente o novo repositório fornecido pelo usuário: `kelvinhx/Projeto-de-RPG-para-TV-Android`.
+   - Modificado o botão de restauração de fábrica ("Restaurar Padrão") nas opções da Android TV para recuperar esta nova base de repositório agora integrada.
+
+2. **Otimização Geral e Resiliência Estrutural (Macro Resilience):**
+   - Refinamento do comportamento do banco de dados Room (local storage) e salvamento de estado do RPG a cada transição de turno para garantir conformidade total, evitando quaisquer falhas estruturais ou travamentos em mutações rápidas de dados.
+   - Reforço no mapeamento cruzado de estados anteriores de jogo para evitar conflitos de cache após atualizações do arquivo local do banco ou ao processar logs de narrativas históricas.
+
+3. **Fluidez de Transição Visual Avançada:**
+   - Pequenas correções de layout e alinhamento de texto de rodapés mantendo estabilidade visual em vários tamanhos de TV (32", 55", 75").
+   - Consolidação globalizada de strings e indicações da versão active atualizada (v3.9) em todos os painéis e widgets nativos.
+
+---
+
 ## [Build v3.8] - Versão do Aplicativo: 3.8
 **Data e Hora do Envio:** 12 de Junho de 2026, às 17:15:00 BRT / 20:15:00 UTC
 

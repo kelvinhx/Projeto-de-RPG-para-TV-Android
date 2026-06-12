@@ -379,7 +379,7 @@ fun GameTitleSection(onSettingsClick: () -> Unit) {
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "O ECO DA PODRIDÃO v3.8",
+                text = "O ECO DA PODRIDÃO v3.9",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = if (isHeaderFocused) Color.White else Color(0xFF8A6BFF),
@@ -1774,7 +1774,7 @@ fun VersionNotificationPrompt(onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(
-                        text = "NOVA VERSÃO INSTALADA! (v3.8)",
+                        text = "NOVA VERSÃO INSTALADA! (v3.9)",
                         color = Color(0xFFFFD43F),
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 14.sp,
@@ -1782,7 +1782,7 @@ fun VersionNotificationPrompt(onDismiss: () -> Unit) {
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Integramos transições ultra-fluidas com animação nos painéis laterais retráteis da TV e aprimoramos o fluxo de comandos de controle! Navegue e jogue de modo mais ágil e imersivo.",
+                        text = "Realizada a compatibilidade absoluta de dados e sincronização total com o novo repositório GitHub kelvinhx/Projeto-de-RPG-para-TV-Android! Agora seu progresso e notas de build rodam 100% integrados.",
                         color = Color.White,
                         fontSize = 12.sp,
                         lineHeight = 18.sp
@@ -1877,7 +1877,7 @@ fun SettingsAndUpdatesDialog(
                                 unfocusedBorderColor = Color(0xFF2C243B),
                                 focusedContainerColor = Color(0xFF1C1826)
                             ),
-                            placeholder = { Text("Ex: rebeijar", color = Color.DarkGray, fontSize = 12.sp) },
+                            placeholder = { Text("Ex: kelvinhx", color = Color.DarkGray, fontSize = 12.sp) },
                             singleLine = true,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1903,7 +1903,7 @@ fun SettingsAndUpdatesDialog(
                                 unfocusedBorderColor = Color(0xFF2C243B),
                                 focusedContainerColor = Color(0xFF1C1826)
                             ),
-                            placeholder = { Text("Ex: WhatIsRPG", color = Color.DarkGray, fontSize = 12.sp) },
+                            placeholder = { Text("Ex: Projeto-de-RPG-para-TV-Android", color = Color.DarkGray, fontSize = 12.sp) },
                             singleLine = true,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1916,9 +1916,9 @@ fun SettingsAndUpdatesDialog(
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         TVButton(
                             onClick = { 
-                                ownerText = "rebeijar"
-                                repoText = "WhatIsRPG"
-                                viewModel.saveGithubSettings("rebeijar", "WhatIsRPG")
+                                ownerText = "kelvinhx"
+                                repoText = "Projeto-de-RPG-para-TV-Android"
+                                viewModel.saveGithubSettings("kelvinhx", "Projeto-de-RPG-para-TV-Android")
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -2120,7 +2120,7 @@ fun SettingsAndUpdatesDialog(
                     
                     // Lower right footer
                     Text(
-                        text = "WhatIsRPG? v3.8 • Conectado à rede do GitHub em tempo real",
+                        text = "WhatIsRPG? v3.9 • Conectado à rede do GitHub em tempo real",
                         color = Color.DarkGray,
                         fontSize = 10.sp,
                         textAlign = TextAlign.End,

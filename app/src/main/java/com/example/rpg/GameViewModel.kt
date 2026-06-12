@@ -37,7 +37,7 @@ sealed class UpdateCheckState {
 class GameViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
 
     companion object {
-        const val CURRENT_VERSION = 3.8
+        const val CURRENT_VERSION = 3.9
     }
 
     private val context = application.applicationContext
@@ -56,10 +56,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
     val audioState: StateFlow<AudioState> = _audioState.asStateFlow()
 
     // GitHub Update configuration and status variables
-    private val _githubOwner = MutableStateFlow(prefs.getString("github_owner", "rebeijar") ?: "rebeijar")
+    private val _githubOwner = MutableStateFlow(prefs.getString("github_owner", "kelvinhx") ?: "kelvinhx")
     val githubOwner: StateFlow<String> = _githubOwner.asStateFlow()
 
-    private val _githubRepo = MutableStateFlow(prefs.getString("github_repo", "WhatIsRPG") ?: "WhatIsRPG")
+    private val _githubRepo = MutableStateFlow(prefs.getString("github_repo", "Projeto-de-RPG-para-TV-Android") ?: "Projeto-de-RPG-para-TV-Android")
     val githubRepo: StateFlow<String> = _githubRepo.asStateFlow()
 
     private val _updateCheckState = MutableStateFlow<UpdateCheckState>(UpdateCheckState.Idle)
@@ -119,8 +119,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
     }
 
     fun saveGithubSettings(owner: String, repo: String) {
-        val cleanOwner = owner.trim().ifEmpty { "rebeijar" }
-        val cleanRepo = repo.trim().ifEmpty { "WhatIsRPG" }
+        val cleanOwner = owner.trim().ifEmpty { "kelvinhx" }
+        val cleanRepo = repo.trim().ifEmpty { "Projeto-de-RPG-para-TV-Android" }
         _githubOwner.value = cleanOwner
         _githubRepo.value = cleanRepo
         prefs.edit()
