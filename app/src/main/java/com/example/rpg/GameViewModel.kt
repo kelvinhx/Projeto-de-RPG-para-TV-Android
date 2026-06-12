@@ -37,7 +37,7 @@ sealed class UpdateCheckState {
 class GameViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
 
     companion object {
-        const val CURRENT_VERSION = 3.0
+        const val CURRENT_VERSION = 3.6
     }
 
     private val context = application.applicationContext
@@ -175,12 +175,25 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
             if (result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED) {
                 ttsInitialized = true
                 Log.d("GameViewModel", "Native Text-To-Speech initialized in Brazilian Portuguese.")
+                // Automatically run narration of the last narrative prompt on launch
+                speakLastNarrativeIfActive()
             } else {
                 Log.e("GameViewModel", "Portuguese language is not supported or missing speech data on this TV device.")
             }
         } else {
             Log.e("GameViewModel", "Failed to initialize native TextToSpeech.")
         }
+    }
+
+    fun speakLastNarrativeIfActive() {
+        val lastNarrative = _gameState.value.history.lastOrNull { it.speaker == "Narrador" }
+        if (lastNarrative != null) {
+            speakOutLoud(lastNarrative.message)
+        }
+    }
+
+    fun speakGenericText(text: String) {
+        speakOutLoud(text)
     }
 
     // Dismiss current error toast

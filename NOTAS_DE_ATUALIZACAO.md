@@ -2,6 +2,38 @@
 
 Este arquivo de controle registra as modificações de build e novas implementações entregues à plataforma.
 
+## [Build v3.6] - Versão do Aplicativo: 3.6
+**Data e Hora do Envio:** 12 de Junho de 2026, às 14:15:00 BRT / 17:15:00 UTC
+
+### O que há de novo nesta Build:
+
+1. **Reformulação Minimalista da Interface de TV (Android TV/Leanback):**
+   - Transição para um layout de TV de alta gama e esteticamente polido com painel lateral translúcido reduzido a 32% da largura.
+   - Design focado em grandes contrastes tipográficos, preenchimentos generosos de inlays e bordas douradas/violetas suaves brilhando em estados selecionados por controle.
+
+2. **Sistema Totalmente Falado por Voz ("Narrador Integral"):**
+   - Integrado reator de inicialização no motor TTS onde, ao carregar a sessão iniciada, o Narrador automaticamente relembra ou introduz o jogador lendo o último evento relevante do histórico.
+   - Ativado suporte de clique nos balões de história do console e cartões de status: o jogador pode utilizar o direcional D-Pad e pressionar OK em qualquer balão de log, NPC, ou atributo para que a Inteligência Artificial narre integralmente o conteúdo em voz ativa em tempo real.
+
+3. **Equalizador de Voz Conectado com Halo Pulsante:**
+   - Adicionada animação visual reativa de sístole/diástole baseada no estado de gravação, onde halos concêntricos vermelhos expandem-se de maneira contínua simulando sensibilidade de áudio sob a TV enquanto o controle escuta o jogador.
+
+---
+
+## [Build v3.5] - Versão do Aplicativo: 3.5
+**Data e Hora do Envio:** 12 de Junho de 2026, às 13:39:00 BRT / 16:39:00 UTC
+
+### O que há de novo nesta Build:
+
+1. **Automação de Compilação do APK via GitHub Actions:**
+   - Adicionado o arquivo `.github/workflows/android.yml` contendo a pipeline de CI de construção profissional do pacote Android.
+   - Configurado o gatilho reativo automático para construir o APK no JDK 17 e enviá-lo como um artefato para download seguro sempre que um commit ou pull-request for enviado às ramificações `main` ou `master`.
+
+2. **Decodificação de Assinatura Automática:**
+   - Integrado script Shell inteligente de decodificação na pipeline do GitHub Actions para reconstruir o `debug.keystore` a partir do backup `debug.keystore.base64` do repositório, mantendo integridade e consistência estrita de chaves de assinatura em ambientes distribuídos.
+
+---
+
 ## [Build v3] - Versão do Aplicativo: 3.0
 **Data e Hora do Envio:** 12 de Junho de 2026, às 16:30:00 BRT / 19:30:00 UTC
 

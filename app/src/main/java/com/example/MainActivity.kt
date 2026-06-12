@@ -213,58 +213,72 @@ fun MainGameLayout(
     val showFirstRunNotification by viewModel.showFirstRunNotification.collectAsStateWithLifecycle()
 
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(Color(0xFF13101C), Color(0xFF060509)),
+                    radius = 2200f
+                )
+            )
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF09080C))
+            modifier = Modifier.fillMaxSize()
         ) {
-            // SIDEBAR STATS & GRIMOIRE PANEL (35% Width)
+            // SIDEBAR STATS & GRIMOIRE PANEL (32% Width) - Sleek Translucent Minimalist Column
             Column(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(0.35f)
-                    .background(Color(0xFF131118))
-                    .border(1.dp, Color(0xFF1E1B24))
+                    .fillMaxWidth(0.32f)
+                    .background(Color(0xFF0A080E).copy(alpha = 0.85f))
+                    .border(BorderStroke(1.dp, Color(0xFF1F1A2D).copy(alpha = 0.5f)))
                     .verticalScroll(rememberScrollState())
-                    .padding(20.dp)
+                    .padding(18.dp)
             ) {
                 GameTitleSection(onSettingsClick = { showSettingsDialog = true })
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // Player Stats Area
+                // Conditionally render player dashboard or creation tracker with high-contrast minimalism
                 if (gameState.creationStep == "RUNNING") {
                     PlayerStatsView(gameState.playerState, viewModel)
-                    Spacer(modifier = Modifier.height(20.dp))
-                    WorldStatusView(gameState.worldState)
-                    Spacer(modifier = Modifier.height(20.dp))
-                    ActiveNpcListView(gameState.npcs)
+                    Spacer(modifier = Modifier.height(14.dp))
+                    WorldStatusView(gameState.worldState, viewModel)
+                    Spacer(modifier = Modifier.height(14.dp))
+                    ActiveNpcListView(gameState.npcs, viewModel)
                 } else {
-                    CharacterCreationStepPanel(gameState.creationStep, gameState.playerState)
+                    CharacterCreationStepPanel(gameState.creationStep, gameState.playerState, viewModel)
                 }
             }
 
-            // NARRATIVE CENTER & CORE INTERACTION PANEL (65% Width)
+            // Divider vertical line
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(1.dp)
+                    .background(Color(0xFF1B1626))
+            )
+
+            // NARRATIVE CENTER & CORE INTERACTION PANEL (68% Width) - Pure Spacious Immersive Space
             Column(
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(20.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Narrative logs scroll
+                // Main Narrative Display Scroll Panel
                 NarrativeBox(
                     history = gameState.history,
                     creationStep = gameState.creationStep,
+                    viewModel = viewModel,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // AI Speech and Remote Mic Record Indicator / Visualizer Area
+                // Glowing Assistive Voice Recorder & Micro Radar View
                 VoiceRecorderConsole(
                     audioState = audioState,
                     transcription = transcription,
@@ -272,9 +286,9 @@ fun MainGameLayout(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Curated Options Buttons (Perfect for D-Pad click interaction on TV)
+                // D-Pad Friendly Curated Options Panels
                 CuratedOptionsPanel(
                     options = gameState.options,
                     onOptionSelect = { text -> viewModel.enterCommandLine(text) },
@@ -308,12 +322,24 @@ fun MainGameLayout(
 @Composable
 fun GameTitleSection(onSettingsClick: () -> Unit) {
     var isHeaderFocused by remember { mutableStateOf(false) }
+    
+    // Dynamic spring properties scaled perfectly for TV remote control focus
+    val scale by animateFloatAsState(
+        targetValue = if (isHeaderFocused) 1.03f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+    )
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .scale(scale)
             .clip(RoundedCornerShape(12.dp))
-            .background(if (isHeaderFocused) Color(0xFF272133) else Color.Transparent)
-            .border(1.dp, if (isHeaderFocused) Color(0xFF8A6BFF) else Color.Transparent, RoundedCornerShape(12.dp))
+            .background(if (isHeaderFocused) Color(0xFF1E162D).copy(alpha = 0.9f) else Color.Transparent)
+            .border(
+                1.dp, 
+                if (isHeaderFocused) Color(0xFFFFD43F) else Color(0xFF1F1A2D), 
+                RoundedCornerShape(12.dp)
+            )
             .focusable(true)
             .onFocusChanged { isHeaderFocused = it.isFocused }
             .clickable { onSettingsClick() }
@@ -329,29 +355,31 @@ fun GameTitleSection(onSettingsClick: () -> Unit) {
                 imageVector = Icons.Default.Settings,
                 contentDescription = "Configurações",
                 tint = if (isHeaderFocused) Color(0xFFFFD43F) else Color(0xFFB19EFF),
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "WhatIsRPG?",
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.Black,
                 fontFamily = FontFamily.Serif,
                 color = Color.White,
-                fontSize = 24.sp
+                fontSize = 22.sp,
+                letterSpacing = 0.5.sp
             )
         }
+        Spacer(modifier = Modifier.height(4.dp))
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "O ECO DA PODRIDÃO v3.0",
-                style = MaterialTheme.typography.bodySmall,
+                text = "O ECO DA PODRIDÃO v3.6",
+                style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = if (isHeaderFocused) Color.White else Color(0xFF8A6BFF),
-                letterSpacing = 1.sp,
-                fontSize = 10.sp
+                letterSpacing = 1.5.sp,
+                fontSize = 9.sp
             )
             Spacer(modifier = Modifier.width(6.dp))
             Box(
@@ -359,34 +387,65 @@ fun GameTitleSection(onSettingsClick: () -> Unit) {
                     .background(Color(0xFF2C243B), RoundedCornerShape(4.dp))
                     .padding(horizontal = 4.dp, vertical = 2.dp)
             ) {
-                Text("CONFIGS", color = Color(0xFFFFD43F), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                Text("CONFIGS", color = Color(0xFFFFD43F), fontSize = 8.sp, fontWeight = FontWeight.Black)
             }
         }
         Box(
             modifier = Modifier
-                .padding(top = 8.dp)
-                .fillMaxWidth(0.5f)
+                .padding(top = 10.dp)
+                .fillMaxWidth(0.4f)
                 .height(1.dp)
-                .background(Color(0xFF2C2536))
+                .background(Color(0xFF201B2B))
         )
     }
 }
 
 @Composable
-fun CharacterCreationStepPanel(step: String, player: PlayerState) {
+fun CharacterCreationStepPanel(step: String, player: PlayerState, viewModel: GameViewModel) {
+    var isCreationFocused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(targetValue = if (isCreationFocused) 1.02f else 1.0f)
+
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1B26)),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0D15)),
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, if (isCreationFocused) Color(0xFF8A6BFF) else Color(0xFF1E172B)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(scale)
+            .focusable(true)
+            .onFocusChanged { isCreationFocused = it.isFocused }
+            .clickable {
+                viewModel.speakGenericText(
+                    "Criação do herói em andamento. Etapa atual: $step. " +
+                    "Nome: ${player.name.ifEmpty { "Ainda não definido" }}. " +
+                    "Raça: ${player.race.ifEmpty { "Ainda não definida" }}. " +
+                    "Classe: ${player.className.ifEmpty { "Ainda não definida" }}."
+                )
+            }
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "CRIAÇÃO DO HERÓI",
-                fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFFFFD43F),
-                fontSize = 14.sp
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "CRIAÇÃO DO HERÓI",
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFFFFD43F),
+                    fontSize = 11.sp,
+                    letterSpacing = 1.sp
+                )
+                if (isCreationFocused) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Ouvir",
+                        tint = Color(0xFF45FFB2),
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
 
             CreationStatItem("Nome", player.name.ifEmpty { "A definir..." })
             CreationStatItem("Aparência", player.appearance.ifEmpty { "A definir..." })
@@ -396,7 +455,7 @@ fun CharacterCreationStepPanel(step: String, player: PlayerState) {
             CreationStatItem("Classe", player.className.ifEmpty { "A definir..." })
             CreationStatItem("Subclasse", player.subclass.ifEmpty { "A definir..." })
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
             
             val progress = when(step) {
                 "NOT_STARTED" -> 0f
@@ -412,18 +471,19 @@ fun CharacterCreationStepPanel(step: String, player: PlayerState) {
             LinearProgressIndicator(
                 progress = { progress },
                 color = Color(0xFF8A6BFF),
-                trackColor = Color(0xFF131118),
+                trackColor = Color(0xFF0A080D),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(6.dp)
+                    .height(5.dp)
                     .clip(CircleShape)
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Etapa: $step",
+                text = "ETAPA ATUAL: $step",
                 color = Color(0xFF8A6BFF),
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp
             )
         }
     }
@@ -434,15 +494,15 @@ fun CreationStatItem(label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 3.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, color = Color(0xFFC0BAC4), fontSize = 12.sp)
+        Text(text = label, color = Color(0xFF9E95A8), fontSize = 11.sp)
         Text(
             text = value,
             color = if (value.contains("definir")) Color.DarkGray else Color.White,
-            fontSize = 12.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -454,106 +514,132 @@ fun CreationStatItem(label: String, value: String) {
 
 @Composable
 fun PlayerStatsView(player: PlayerState, viewModel: GameViewModel) {
+    var isStatsFocused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(targetValue = if (isStatsFocused) 1.01f else 1.0f)
+
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1D1B22)),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0D15)),
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, if (isStatsFocused) Color(0xFFFFD43F) else Color(0xFF1A1626)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(scale)
+            .focusable(true)
+            .onFocusChanged { isStatsFocused = it.isFocused }
+            .clickable {
+                viewModel.speakGenericText(
+                    "status do Herói: nível ${player.level} com ${player.hp} de vida e ${player.mp} de mana. " +
+                    "Você possui ${player.gold} moedas de ouro em seu bolso."
+                )
+            }
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Identity Header
+        Column(modifier = Modifier.padding(14.dp)) {
+            // Identity Header with Speak triggers
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = player.name.uppercase(),
                         fontWeight = FontWeight.Black,
                         color = Color.White,
-                        fontSize = 18.sp,
+                        fontSize = 16.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "${player.race} • ${player.className} (${player.subclass})",
+                        text = "${player.race} • ${player.className}",
                         color = Color(0xFF8A6BFF),
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 Box(
                     modifier = Modifier
-                        .background(Color(0xFF2C243B), CircleShape)
+                        .background(Color(0xFF20162F), RoundedCornerShape(8.dp))
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "NÍVEL ${player.level}",
+                        text = "LVL ${player.level}",
                         color = Color(0xFFFFD43F),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+                if (isStatsFocused) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Ouvir",
+                        tint = Color(0xFF45FFB2),
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // XP Progression bar
+            // XP Progression Line
             Text(
-                text = "EXPERIÊNCIA: ${player.experience} / ${player.maxExperience} XP",
-                fontSize = 10.sp,
-                color = Color(0xFFC0BAC4),
+                text = "EXP: ${player.experience} / ${player.maxExperience} XP",
+                fontSize = 9.sp,
+                color = Color(0xFF9E95A8),
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(4.dp))
             LinearProgressIndicator(
                 progress = { player.experience.toFloat() / player.maxExperience.toFloat() },
                 color = Color(0xFF8A6BFF),
-                trackColor = Color(0xFF131118),
+                trackColor = Color(0xFF0A080D),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(6.dp)
+                    .height(4.dp)
                     .clip(CircleShape)
             )
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Vitality Resources
-            StatGauge("HP / VIDA", player.hp, player.maxHp, Color(0xFFFF4E4E))
+            // Vitality Gauges
+            StatGauge("HP / VITALIDADE", player.hp, player.maxHp, Color(0xFFFF4E4E))
             Spacer(modifier = Modifier.height(8.dp))
-            StatGauge("MP / MANA", player.mp, player.maxMp, Color(0xFF4579FF))
+            StatGauge("MP / MANA CELSTE", player.mp, player.maxMp, Color(0xFF3B66FF))
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Economy
+            // Economy Row
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
                     imageVector = Icons.Default.Star,
-                    contentDescription = null,
+                    contentDescription = "Pessas de Ouro",
                     tint = Color(0xFFFFD43F),
-                    modifier = Modifier.size(14.dp)
+                    modifier = Modifier.size(13.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "${player.gold} PEÇAS DE OURO",
                     color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 11.sp,
+                    letterSpacing = 0.5.sp
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Core Attributes Checklist
             Text(
-                text = "ATRIBUTOS DO CORE",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFFFFD43F)
+                text = "ATRIBUTOS CORE (SELECIONE PARA DISTRIBUIR OU FALAR)",
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Black,
+                color = Color(0xFFFFD43F),
+                letterSpacing = 0.5.sp
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             AttributeRow("FORÇA (FOR)", player.attributes.strength, player.unassignedPoints > 0, viewModel, "FOR")
             AttributeRow("AGILIDADE (AGI)", player.attributes.agility, player.unassignedPoints > 0, viewModel, "AGI")
@@ -565,24 +651,25 @@ fun PlayerStatsView(player: PlayerState, viewModel: GameViewModel) {
             if (player.unassignedPoints > 0) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Você possui ${player.unassignedPoints} pontos livres! Distribua acima.",
+                    text = "Você tem ${player.unassignedPoints} pontos livres! Distribua acima.",
                     color = Color.Green,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp
+                    fontSize = 10.sp
                 )
             }
 
             // Scars and Titles display if exists
             if (player.titles.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "TÍTULOS RECONHECIDOS",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF8A6BFF)
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFF8A6BFF),
+                    letterSpacing = 0.5.sp
                 )
-                player.titles.forEach { title ->
-                    Text(text = "🛡️ \"$title\"", color = Color.LightGray, fontSize = 11.sp)
+                player.titles.take(2).forEach { title ->
+                    Text(text = "⚔️ \"$title\"", color = Color.LightGray, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
@@ -594,19 +681,20 @@ fun StatGauge(label: String, value: Int, max: Int, color: Color) {
     val displayedVal = value.coerceIn(0, max)
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-        Text(text = "$displayedVal / $max", color = color, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        Text(text = label, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+        Text(text = "$displayedVal / $max", color = color, fontSize = 9.sp, fontWeight = FontWeight.Black)
     }
-    Spacer(modifier = Modifier.height(4.dp))
+    Spacer(modifier = Modifier.height(3.dp))
     LinearProgressIndicator(
         progress = { displayedVal.toFloat() / max.toFloat() },
         color = color,
-        trackColor = Color(0xFF131118),
+        trackColor = Color(0xFF0A080D),
         modifier = Modifier
             .fillMaxWidth()
-            .height(8.dp)
+            .height(5.dp)
             .clip(CircleShape)
     )
 }
@@ -620,22 +708,37 @@ fun AttributeRow(
     statId: String
 ) {
     var isPlusFocused by remember { mutableStateOf(false) }
+    var isRowFocused by remember { mutableStateOf(false) }
+    val rowScale by animateFloatAsState(targetValue = if (isRowFocused) 1.03f else 1.0f)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .scale(rowScale)
+            .background(if (isRowFocused) Color(0xFF1E172B) else Color.Transparent, RoundedCornerShape(4.dp))
+            .focusable(true)
+            .onFocusChanged { isRowFocused = it.isFocused }
+            .clickable {
+                viewModel.speakGenericText("Atributo $name possui $value pontos de força total.")
+            }
+            .padding(vertical = 4.dp, horizontal = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = name, color = Color(0xFFC0BAC4), fontSize = 11.sp)
+        Text(
+            text = name, 
+            color = if (isRowFocused) Color.White else Color(0xFF9E95A8), 
+            fontSize = 11.sp, 
+            fontWeight = if (isRowFocused) FontWeight.Bold else FontWeight.Normal
+        )
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = value.toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text(text = value.toString(), color = Color.White, fontWeight = FontWeight.Black, fontSize = 11.sp)
             if (canPlus) {
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
                 Box(
                     modifier = Modifier
                         .background(
-                            if (isPlusFocused) Color(0xFF8A6BFF) else Color(0xFF2C2930), 
+                            if (isPlusFocused) Color(0xFF8A6BFF) else Color(0xFF20162B), 
                             RoundedCornerShape(4.dp)
                         )
                         .border(
@@ -648,7 +751,7 @@ fun AttributeRow(
                         .clickable { viewModel.distributeStat(statId) }
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
-                    Text(text = "+", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                    Text(text = "+", color = Color.White, fontWeight = FontWeight.Black, fontSize = 10.sp)
                 }
             }
         }
@@ -656,41 +759,70 @@ fun AttributeRow(
 }
 
 @Composable
-fun WorldStatusView(world: WorldState) {
+fun WorldStatusView(world: WorldState, viewModel: GameViewModel) {
+    var isWorldFocused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(targetValue = if (isWorldFocused) 1.01f else 1.0f)
+
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF15141B)),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0D15)),
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, if (isWorldFocused) Color(0xFFFFD43F) else Color(0xFF1A1626)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(scale)
+            .focusable(true)
+            .onFocusChanged { isWorldFocused = it.isFocused }
+            .clickable {
+                viewModel.speakGenericText(
+                    "Você está na Região de: ${world.region}. O dia está no ciclo da ${world.timeOfDay}. " +
+                    "A podridão silvestre está em ${world.rotLevel} por cento de corrupção total."
+                )
+            }
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "ESTADO DO MUNDO VIVO",
-                fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFFFFD43F),
-                fontSize = 11.sp
-            )
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "ESTADO DO MUNDO VIVO",
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFFFFD43F),
+                    fontSize = 10.sp,
+                    letterSpacing = 0.5.sp
+                )
+                if (isWorldFocused) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Ouvir",
+                        tint = Color(0xFF45FFB2),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(10.dp))
 
             WorldRow(Icons.Default.Info, "Região Atual", world.region)
             WorldRow(Icons.Default.Refresh, "Tempo e Ciclo", world.timeOfDay)
             
-            // Living rot indicator
             Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "Podridão do Solo", color = Color(0xFFFF8B8B), fontSize = 11.sp)
-                Text(text = "${world.rotLevel}% Corrompido", color = Color(0xFFFF4E4E), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text(text = "Podridão do Solo", color = Color(0xFFFF8B8B), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text(text = "${world.rotLevel}% Corrompido", color = Color(0xFFFF4E4E), fontSize = 10.sp, fontWeight = FontWeight.Black)
             }
             Spacer(modifier = Modifier.height(4.dp))
             LinearProgressIndicator(
                 progress = { world.rotLevel.toFloat() / 100f },
                 color = Color(0xFFFF4E4E),
-                trackColor = Color(0xFF131118),
+                trackColor = Color(0xFF0A080D),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(6.dp)
+                    .height(4.dp)
                     .clip(CircleShape)
             )
         }
@@ -702,36 +834,50 @@ fun WorldRow(icon: ImageVector, label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = Color(0xFF8A6BFF), modifier = Modifier.size(14.dp))
+        Icon(imageVector = icon, contentDescription = null, tint = Color(0xFF8A6BFF), modifier = Modifier.size(13.dp))
         Spacer(modifier = Modifier.width(8.dp))
         Column {
-            Text(text = label, color = Color.Gray, fontSize = 10.sp)
-            Text(text = value, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(text = label, color = Color.Gray, fontSize = 9.sp)
+            Text(text = value, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
 
 @Composable
-fun ActiveNpcListView(npcs: List<NpcState>) {
+fun ActiveNpcListView(npcs: List<NpcState>, viewModel: GameViewModel) {
     if (npcs.isEmpty()) return
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "SOBREVIVENTES ENCONTRADOS",
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.Black,
             color = Color(0xFF8A6BFF),
-            fontSize = 11.sp,
-            modifier = Modifier.padding(vertical = 8.dp)
+            fontSize = 10.sp,
+            letterSpacing = 0.5.sp,
+            modifier = Modifier.padding(vertical = 6.dp)
         )
         npcs.forEach { npc ->
+            var isNpcFocused by remember { mutableStateOf(false) }
+            val itemScale by animateFloatAsState(targetValue = if (isNpcFocused) 1.03f else 1.0f)
+
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1920)),
-                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF110E16)),
+                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(1.dp, if (isNpcFocused) Color(0xFFFFD43F) else Color(0xFF1E172B)),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp)
+                    .scale(itemScale)
+                    .focusable(true)
+                    .onFocusChanged { isNpcFocused = it.isFocused }
+                    .clickable {
+                        viewModel.speakGenericText(
+                            "Sobrevivente: ${npc.name}. ${npc.description}. " +
+                            "Seu estado emocional é ${npc.emotion}."
+                        )
+                    }
+                    .padding(vertical = 3.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(10.dp),
@@ -739,23 +885,29 @@ fun ActiveNpcListView(npcs: List<NpcState>) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(text = npc.name, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 12.sp)
-                        Text(text = npc.description, color = Color(0xFFC0BAC4), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(text = "Emoção: ${npc.emotion}", color = Color.Gray, fontSize = 9.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = npc.name, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 11.sp)
+                            if (isNpcFocused) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(Icons.Default.PlayArrow, contentDescription = "Ouvir", tint = Color(0xFF45FFB2), modifier = Modifier.size(12.dp))
+                            }
+                        }
+                        Text(text = npc.description, color = Color(0xFF9E95A8), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(text = "Humor: ${npc.emotion}", color = Color.Gray, fontSize = 9.sp)
                     }
-                    // Mini affinity layout
+                    // Mini affinity capsule indicator
                     Box(
                         modifier = Modifier
                             .background(
-                                if (npc.affinity >= 0) Color(0xFF223624) else Color(0xFF3B1E1E),
+                                if (npc.affinity >= 0) Color(0xFF122C1A) else Color(0xFF351212),
                                 CircleShape
                             )
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = if (npc.affinity >= 0) "+${npc.affinity} Amizade" else "${npc.affinity} Repúdio",
+                            text = if (npc.affinity >= 0) "+${npc.affinity} Amizade" else "${npc.affinity} Ódio",
                             color = if (npc.affinity >= 0) Color.Green else Color(0xFFFF5252),
-                            fontSize = 9.sp,
+                            fontSize = 8.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -769,6 +921,7 @@ fun ActiveNpcListView(npcs: List<NpcState>) {
 fun NarrativeBox(
     history: List<LogEntry>,
     creationStep: String,
+    viewModel: GameViewModel,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -781,12 +934,12 @@ fun NarrativeBox(
     }
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF110E14)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0A080C)),
         shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, Color(0xFF231E2A)),
+        border = BorderStroke(1.dp, Color(0xFF191424)),
         modifier = modifier
     ) {
-        Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Box(modifier = Modifier.fillMaxSize().padding(14.dp)) {
             if (history.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Color(0xFF8A6BFF))
@@ -795,37 +948,45 @@ fun NarrativeBox(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(history) { entry ->
                         val isNarrator = entry.speaker == "Narrador"
+                        var isCardFocused by remember { mutableStateOf(false) }
+                        val visualScale by animateFloatAsState(targetValue = if (isCardFocused) 1.02f else 1.0f)
+                        
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = if (isNarrator) Arrangement.Start else Arrangement.End
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .fillMaxWidth(0.85f)
+                                    .fillMaxWidth(if (isCardFocused) 0.92f else 0.88f)
+                                    .scale(visualScale)
                                     .background(
-                                        color = if (isNarrator) Color(0xFF1E1B26) else Color(0xFF2C243B),
-                                        shape = RoundedCornerShape(
-                                            topStart = 16.dp,
-                                            topEnd = 16.dp,
-                                            bottomStart = if (isNarrator) 0.dp else 16.dp,
-                                            bottomEnd = if (isNarrator) 16.dp else 0.dp
-                                        )
+                                        color = if (isNarrator) {
+                                            if (isCardFocused) Color(0xFF1B1626) else Color(0xFF0F0D15)
+                                        } else {
+                                            if (isCardFocused) Color(0xFF291E3B) else Color(0xFF1D152A)
+                                        },
+                                        shape = RoundedCornerShape(14.dp)
                                     )
                                     .border(
-                                        width = 1.dp,
-                                        color = if (isNarrator) Color(0xFF332049) else Color(0xFF513875),
-                                        shape = RoundedCornerShape(
-                                            topStart = 16.dp,
-                                            topEnd = 16.dp,
-                                            bottomStart = if (isNarrator) 0.dp else 16.dp,
-                                            bottomEnd = if (isNarrator) 16.dp else 0.dp
-                                        )
+                                        width = if (isCardFocused) 2.dp else 1.dp,
+                                        color = if (isCardFocused) {
+                                            if (isNarrator) Color(0xFFFFD43F) else Color(0xFF8A6BFF)
+                                        } else {
+                                            if (isNarrator) Color(0xFF1A1524) else Color(0xFF261A36)
+                                        },
+                                        shape = RoundedCornerShape(14.dp)
                                     )
-                                    .padding(14.dp)
+                                    .focusable(true)
+                                    .onFocusChanged { isCardFocused = it.isFocused }
+                                    .clickable {
+                                        // Voice narration play on OK selection
+                                        viewModel.speakGenericText(entry.message)
+                                    }
+                                    .padding(12.dp)
                             ) {
                                 Column {
                                     Row(
@@ -833,26 +994,54 @@ fun NarrativeBox(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Text(
-                                            text = entry.speaker,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isNarrator) Color(0xFFFFD43F) else Color(0xFFB19EFF),
-                                            fontSize = 11.sp
-                                        )
-                                        Text(
-                                            text = "Voz Ativa",
-                                            color = Color.DarkGray,
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = if (isNarrator) Icons.Default.PlayArrow else Icons.Default.Check,
+                                                contentDescription = null,
+                                                tint = if (isNarrator) Color(0xFFFFD43F) else Color(0xFFB19EFF),
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = entry.speaker.uppercase(),
+                                                fontWeight = FontWeight.Black,
+                                                color = if (isNarrator) Color(0xFFFFD43F) else Color(0xFFB19EFF),
+                                                fontSize = 10.sp,
+                                                letterSpacing = 1.sp
+                                            )
+                                        }
+                                        if (isCardFocused) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    imageVector = Icons.Default.PlayArrow,
+                                                    contentDescription = "Ouvir",
+                                                    tint = Color(0xFF45FFB2),
+                                                    modifier = Modifier.size(11.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = "OUVIR (OK)",
+                                                    color = Color(0xFF45FFB2),
+                                                    fontSize = 8.sp,
+                                                    fontWeight = FontWeight.Black
+                                                )
+                                            }
+                                        } else {
+                                            Text(
+                                                text = "Voz Ativa",
+                                                color = Color.DarkGray,
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
                                     }
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Text(
                                         text = entry.message,
                                         color = Color.White,
-                                        fontSize = 15.sp,
+                                        fontSize = 14.sp,
                                         fontFamily = FontFamily.Serif,
-                                        lineHeight = 22.sp
+                                        lineHeight = 20.sp
                                     )
                                 }
                             }
@@ -875,66 +1064,67 @@ fun VoiceRecorderConsole(
     var isStopSpokenFocused by remember { mutableStateOf(false) }
     var isResetFocused by remember { mutableStateOf(false) }
     
+    // Ambient pulsation simulation for futuristic virtual microphone wave
     val infiniteTransition = rememberInfiniteTransition()
-    val recordScale by infiniteTransition.animateFloat(
+    
+    val pulseScale1 by infiniteTransition.animateFloat(
         initialValue = 1.0f,
-        targetValue = if (audioState == AudioState.Recording) 1.25f else 1.0f,
+        targetValue = if (audioState == AudioState.Recording) 1.5f else 1.0f,
         animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
         )
     )
-
-    val haloAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = if (audioState == AudioState.Recording) 0.8f else 0.2f,
+    val pulseAlpha1 by infiniteTransition.animateFloat(
+        initialValue = 0.5f,
+        targetValue = if (audioState == AudioState.Recording) 0f else 0.5f,
         animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
         )
     )
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF14121A)),
-        border = BorderStroke(1.dp, Color(0xFF231E29)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0D15)),
+        border = BorderStroke(1.dp, Color(0xFF1E172B)),
         shape = RoundedCornerShape(16.dp),
         modifier = modifier
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Left block: mic state text
+            // Left Side: Glowing Dome of Microphone
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                // Mic glowing ring
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(56.dp)
+                    modifier = Modifier.size(52.dp)
                 ) {
+                    // Pulsating radar halo ring represent audio capture activity
                     if (audioState == AudioState.Recording) {
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
-                                .scale(recordScale)
-                                .background(Color(0xFFFF3E3E).copy(alpha = haloAlpha), CircleShape)
+                                .size(44.dp)
+                                .scale(pulseScale1)
+                                .background(Color(0xFFFF3E3E).copy(alpha = pulseAlpha1), CircleShape)
                         )
                     }
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(34.dp)
                             .background(
                                 when (audioState) {
                                     AudioState.Recording -> Color(0xFFFF3E3E)
                                     AudioState.Transcribing -> Color(0xFFFFD43F)
                                     AudioState.ProcessingTurn -> Color(0xFF8A6BFF)
                                     AudioState.SpeakingNarrator -> Color(0xFF45FFB2)
-                                    else -> Color(0xFF332D3F)
+                                    else -> Color(0xFF221C2F)
                                 },
                                 CircleShape
                             ),
@@ -950,43 +1140,44 @@ fun VoiceRecorderConsole(
                             },
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(14.dp))
                 Column {
                     Text(
                         text = when (audioState) {
-                            AudioState.Recording -> "GRAVANDO... Fale no comando da TV"
-                            AudioState.Transcribing -> "TRANSCREVENDO SUBSURROS VIA IA..."
+                            AudioState.Recording -> "FALE NO CONTROLE REMOTO..."
+                            AudioState.Transcribing -> "IA TRADUZINDO SUBSURROS..."
                             AudioState.ProcessingTurn -> "DUNGEON MASTER SIMULANDO REALIDADE..."
-                            AudioState.SpeakingNarrator -> "SUSSURRANDO VOZ DO NARRADOR..."
-                            else -> "CONECTAR AO MICROFONE DO CONTROLE"
+                            AudioState.SpeakingNarrator -> "SUSSURRANDO VOZ ATIVA..."
+                            else -> "MICROFONE CONECTADO NO CONTROLE"
                         },
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Black,
                         color = when (audioState) {
                             AudioState.Recording -> Color(0xFFFF3E3E)
                             AudioState.Transcribing -> Color(0xFFFFD43F)
                             AudioState.ProcessingTurn -> Color(0xFF8A6BFF)
                             AudioState.SpeakingNarrator -> Color(0xFF45FFB2)
-                            else -> Color(0xFFC0BAC4)
+                            else -> Color(0xFF8A6BFF)
                         },
-                        fontSize = 13.sp
+                        letterSpacing = 0.5.sp,
+                        fontSize = 11.sp
                     )
                     Text(
-                        text = if (transcription.isNotEmpty()) "Último áudio: \"$transcription\"" else "Pressione OK abaixo ou no controle remoto para falar.",
+                        text = if (transcription.isNotEmpty()) "Comando falado: \"$transcription\"" else "Navegue ao botão FALAR e aperte OK do rádio.",
                         color = Color.Gray,
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
             }
 
-            // Right block: Action buttons (OK and options to skip or reset)
+            // Right block: Premium Action Buttons
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // 1. Microphone Toggle
+                // 1. Microphone capture toggle (remote OK press)
                 TVButton(
                     onClick = { viewModel.toggleVoiceRecording() },
                     modifier = Modifier
@@ -1002,20 +1193,20 @@ fun VoiceRecorderConsole(
                         imageVector = if (audioState == AudioState.Recording) Icons.Default.Close else Icons.Default.PlayArrow,
                         contentDescription = null,
                         tint = if (audioState == AudioState.Recording) Color.Red else Color.White,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = if (audioState == AudioState.Recording) "PARAR DE FALAR" else "FALAR (OK)",
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 11.sp,
                         color = Color.White
                     )
                 }
 
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(8.dp))
 
-                // 2. Stop spoken narration option (if talking)
+                // 2. Stop spoken narration if speaking active
                 if (audioState == AudioState.SpeakingNarrator) {
                     TVButton(
                         onClick = { viewModel.stopSpokenNarration() },
@@ -1028,14 +1219,14 @@ fun VoiceRecorderConsole(
                             )
                             .testTag("silence_button")
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = null, tint = Color.LightGray)
+                        Icon(Icons.Default.Close, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Silenciar", fontSize = 11.sp, color = Color.LightGray)
+                        Text("Mudar Voz", fontSize = 10.sp, color = Color.LightGray)
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
 
-                // 3. Complete game restart slot
+                // 3. System hard reboot slot
                 TVButton(
                     onClick = { viewModel.resetGame() },
                     modifier = Modifier
@@ -1047,9 +1238,9 @@ fun VoiceRecorderConsole(
                         )
                         .testTag("restart_game_button")
                 ) {
-                    Icon(Icons.Default.Refresh, contentDescription = null, tint = Color(0xFFFF4E4E), modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Refresh, contentDescription = null, tint = Color(0xFFFF4E4E), modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Deletar Salve / Reset", color = Color(0xFFFF4E4E), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("Reiniciar RPG", color = Color(0xFFFF4E4E), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -1064,18 +1255,19 @@ fun CuratedOptionsPanel(
 ) {
     Column(modifier = modifier) {
         Text(
-            text = "AÇÕES DISPONÍVEIS (SELECIONE COM O DIRECIONAL DO CONTROLE OU FALE):",
-            fontWeight = FontWeight.ExtraBold,
+            text = "OPÇÕES DO MESTRE (VIBRAR DIRECIONAL):",
+            fontWeight = FontWeight.Black,
             color = Color(0xFFFFD43F),
             letterSpacing = 1.sp,
-            fontSize = 11.sp,
-            modifier = Modifier.padding(bottom = 8.dp)
+            fontSize = 9.sp,
+            modifier = Modifier.padding(bottom = 6.dp)
         )
         
-        // Horizontal list of D-Pad reachable quick choices
         Row(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             options.forEach { option ->
                 TVButton(
@@ -1084,16 +1276,16 @@ fun CuratedOptionsPanel(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
-                        contentDescription = null,
+                        contentDescription = "Ativar",
                         tint = Color(0xFFB19EFF),
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(12.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = option,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         maxLines = 1
                     )
                 }
@@ -1102,7 +1294,6 @@ fun CuratedOptionsPanel(
     }
 }
 
-// Custom specialized D-Pad focus-sensitive wrapper optimized for television viewport
 @Composable
 fun TVButton(
     onClick: () -> Unit,
@@ -1115,18 +1306,18 @@ fun TVButton(
         targetValue = if (isFocused) 1.05f else 1.0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
     )
-    val borderColor by animateColorAsState(if (isFocused) Color(0xFF8A6BFF) else Color(0xFF2E243B))
-    val backgroundFillColor by animateColorAsState(if (isFocused) Color(0xFF272133) else Color(0xFF191621))
+    val borderColor by animateColorAsState(if (isFocused) Color(0xFF8A6BFF) else Color(0xFF16131F))
+    val backgroundFillColor by animateColorAsState(if (isFocused) Color(0xFF221633) else Color(0xFF0F0D15))
 
     Box(
         modifier = modifier
             .scale(scale)
-            .background(backgroundFillColor, RoundedCornerShape(12.dp))
-            .border(2.dp, borderColor, RoundedCornerShape(12.dp))
+            .background(backgroundFillColor, RoundedCornerShape(10.dp))
+            .border(2.dp, borderColor, RoundedCornerShape(10.dp))
             .focusable(true)
             .onFocusChanged { isFocused = it.isFocused }
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Row(
@@ -1176,7 +1367,7 @@ fun VersionNotificationPrompt(onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(
-                        text = "NOVA VERSÃO INSTALADA! (v3.0)",
+                        text = "NOVA VERSÃO INSTALADA! (v3.6)",
                         color = Color(0xFFFFD43F),
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 14.sp,
@@ -1522,7 +1713,7 @@ fun SettingsAndUpdatesDialog(
                     
                     // Lower right footer
                     Text(
-                        text = "WhatIsRPG? v3.0 • Conectado à rede do GitHub em tempo real",
+                        text = "WhatIsRPG? v3.6 • Conectado à rede do GitHub em tempo real",
                         color = Color.DarkGray,
                         fontSize = 10.sp,
                         textAlign = TextAlign.End,
