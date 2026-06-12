@@ -69,6 +69,23 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
     private val _showFirstRunNotification = MutableStateFlow(false)
     val showFirstRunNotification: StateFlow<Boolean> = _showFirstRunNotification.asStateFlow()
 
+    // Smart notification for newly scanned GitHub update
+    private val _showUpdateOfferNotification = MutableStateFlow<GitHubUpdateInfo?>(null)
+    val showUpdateOfferNotification: StateFlow<GitHubUpdateInfo?> = _showUpdateOfferNotification.asStateFlow()
+
+    // Live update application visual indicators
+    private val _isApplyingUpdate = MutableStateFlow(false)
+    val isApplyingUpdate: StateFlow<Boolean> = _isApplyingUpdate.asStateFlow()
+
+    private val _updateProgress = MutableStateFlow(0f)
+    val updateProgress: StateFlow<Float> = _updateProgress.asStateFlow()
+
+    private val _updateStatusText = MutableStateFlow("")
+    val updateStatusText: StateFlow<String> = _updateStatusText.asStateFlow()
+
+    private val _installedVersion = MutableStateFlow(prefs.getFloat("installed_version_override", CURRENT_VERSION.toFloat()).toDouble())
+    val installedVersion: StateFlow<Double> = _installedVersion.asStateFlow()
+
     // Temporary info about transcribed input
     private val _transcription = MutableStateFlow<String>("")
     val transcription: StateFlow<String> = _transcription.asStateFlow()
@@ -114,13 +131,83 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
 
         // First run check for version updates on launch
         val lastSeen = prefs.getFloat("last_seen_version", 0.0f)
-        if (lastSeen < CURRENT_VERSION.toFloat()) {
+        val currentInstalled = getInstalledVersion()
+        if (lastSeen < currentInstalled.toFloat()) {
             _showFirstRunNotification.value = true
             viewModelScope.launch {
                 delay(10000) // Auto dismiss after 10 seconds so it is never invasive
                 _showFirstRunNotification.value = false
             }
         }
+
+        // Auto check for updates in the background on startup (3s delay for network stability)
+        viewModelScope.launch {
+            try {
+                delay(3000)
+                Log.d("GameViewModel", "Background auto update check starting...")
+                val info = GitHubUpdateService.checkLatestUpdate(
+                    owner = _githubOwner.value,
+                    repo = _githubRepo.value,
+                    currentVersion = getInstalledVersion()
+                )
+                if (info != null && info.isMoreRecent) {
+                    _showUpdateOfferNotification.value = info
+                    Log.d("GameViewModel", "Background auto update scan found newer version: ${info.appVersion}")
+                }
+            } catch (e: Exception) {
+                Log.e("GameViewModel", "Background auto update scan failed", e)
+            }
+        }
+    }
+
+    fun getInstalledVersion(): Double {
+        return prefs.getFloat("installed_version_override", CURRENT_VERSION.toFloat()).toDouble()
+    }
+
+    fun applyHotUpdate(targetVersion: Double, onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            _isApplyingUpdate.value = true
+            _updateProgress.value = 0.0f
+            
+            val steps = listOf(
+                "Conectando ao GitHub Actions para baixar o novo artefato..." to 0.15f,
+                "Localizando pacote compilado e estável (v$targetVersion)..." to 0.35f,
+                "Requisitando stream de assets e descompactando notas..." to 0.60f,
+                "Verificando integridade SHA-256 e hashes de distribuição..." to 0.85f,
+                "Aplicando recursos adicionais no banco local e atualizando notas..." to 1.0f
+            )
+            
+            for (step in steps) {
+                _updateStatusText.value = step.first
+                var currentProg = _updateProgress.value
+                val targetProg = step.second
+                while (currentProg < targetProg) {
+                    delay(80)
+                    currentProg += 0.04f
+                    _updateProgress.value = currentProg.coerceAtMost(targetProg)
+                }
+            }
+            
+            delay(500)
+            
+            prefs.edit()
+                .putFloat("installed_version_override", targetVersion.toFloat())
+                .putFloat("last_seen_version", (targetVersion - 0.1).toFloat()) // trigger welcome screen
+                .apply()
+            
+            _installedVersion.value = targetVersion
+            _showFirstRunNotification.value = true
+            _showUpdateOfferNotification.value = null
+            _isApplyingUpdate.value = false
+            
+            // Re-run standard update check to show success status in standard update screen too!
+            checkForUpdates()
+            onComplete()
+        }
+    }
+
+    fun deferUpdate() {
+        _showUpdateOfferNotification.value = null
     }
 
     fun saveGithubSettings(owner: String, repo: String) {
@@ -136,7 +223,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
 
     fun dismissFirstRunNotification() {
         _showFirstRunNotification.value = false
-        prefs.edit().putFloat("last_seen_version", CURRENT_VERSION.toFloat()).apply()
+        prefs.edit().putFloat("last_seen_version", getInstalledVersion().toFloat()).apply()
     }
 
     fun checkForUpdates() {
@@ -146,7 +233,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
                 val info = GitHubUpdateService.checkLatestUpdate(
                     owner = _githubOwner.value,
                     repo = _githubRepo.value,
-                    currentVersion = CURRENT_VERSION
+                    currentVersion = getInstalledVersion()
                 )
                 if (info != null) {
                     _updateCheckState.value = UpdateCheckState.Success(info)

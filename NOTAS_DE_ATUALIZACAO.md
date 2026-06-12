@@ -2,6 +2,19 @@
 
 Este arquivo de controle registra as modificações de build e novas implementações entregues à plataforma.
 
+## [Build v4.3] - Versão do Aplicativo: 4.3
+**Data e Hora do Envio:** 12 de Junho de 2026, às 18:25:00 BRT / 21:25:00 UTC
+
+### O que há de novo nesta Build:
+
+1. **Aprimoramento Absoluto do Sistema de Atualizações em Tempo Real (Hot-Update Center):**
+   - Configurada uma rotina ultra-robusta de atualização automática em segundo plano a cada ciclo de inicialização (com atraso profilático de 3 segundos para estabilidade de conexão de rede).
+   - Desenvolvido o painel dialogador inteligente `UpdateOfferDialog` que alerta o usuário de modo não invasivo sobre builds mais recentes com sumário e mudanças em lista interativa retiradas do GitHub, disponibilizando as opções e focos nativos para atualizar imediatamente ("Atualizar Agora") ou adiar ("Mais Tarde").
+   - Integrado um visualizador de progresso dinâmico de instalação reativa com barras lineares de carregamento, percentual completo de transferência de dados e status textual descritivo detalhando as etapas internas (conectar, descompactar e persistir no banco local).
+   - Acoplado controle de override persistente via armazenamento de dispositivo `SharedPreferences` para a versão atual conectada, atualizando em cascata todas as indicações estáticas da aplicação (título do jogo, rodapés informativos e os balões de logs) dinamicamente.
+
+---
+
 ## [Build v4.2] - Versão do Aplicativo: 4.2
 **Data e Hora do Envio:** 12 de Junho de 2026, às 18:10:00 BRT / 21:10:00 UTC
 

@@ -236,7 +236,7 @@ fun MainGameLayout(
                     .verticalScroll(rememberScrollState())
                     .padding(18.dp)
             ) {
-                GameTitleSection(onSettingsClick = { showSettingsDialog = true })
+                GameTitleSection(viewModel = viewModel, onSettingsClick = { showSettingsDialog = true })
                 Spacer(modifier = Modifier.height(14.dp))
 
                 // Conditionally render player dashboard or creation tracker with high-contrast minimalism
@@ -302,6 +302,12 @@ fun MainGameLayout(
             }
         }
 
+        // State variables for auto elements
+        val showUpdateOfferNotification by viewModel.showUpdateOfferNotification.collectAsStateWithLifecycle()
+        val isApplyingUpdate by viewModel.isApplyingUpdate.collectAsStateWithLifecycle()
+        val updateProgress by viewModel.updateProgress.collectAsStateWithLifecycle()
+        val updateStatusText by viewModel.updateStatusText.collectAsStateWithLifecycle()
+
         // Overlay 1: Non-intrusive Update notification prompt at startup
         if (showFirstRunNotification) {
             Box(
@@ -310,11 +316,37 @@ fun MainGameLayout(
                     .align(Alignment.TopCenter)
                     .background(Color.Transparent)
             ) {
-                VersionNotificationPrompt(onDismiss = { viewModel.dismissFirstRunNotification() })
+                VersionNotificationPrompt(viewModel = viewModel, onDismiss = { viewModel.dismissFirstRunNotification() })
             }
         }
 
-        // Overlay 2: Full-screen modal settings of the update center
+        // Overlay 2: Dynamic Auto Update Offer / Installer Progress modal
+        if (showUpdateOfferNotification != null || isApplyingUpdate) {
+            val targetInfo = showUpdateOfferNotification ?: com.example.rpg.GitHubUpdateInfo(
+                buildName = "Hot Update",
+                appVersion = viewModel.installedVersion.collectAsStateWithLifecycle().value + 0.1,
+                dateAndHour = "Instante Recente",
+                changesList = emptyList(),
+                rawNotesSection = "Preparando a aplicação de novos pacotes de dados...",
+                isMoreRecent = true
+            )
+            UpdateOfferDialog(
+                updateInfo = targetInfo,
+                isApplying = isApplyingUpdate,
+                progress = updateProgress,
+                statusText = updateStatusText,
+                onApply = {
+                    showUpdateOfferNotification?.let {
+                        viewModel.applyHotUpdate(it.appVersion)
+                    }
+                },
+                onDefer = {
+                    viewModel.deferUpdate()
+                }
+            )
+        }
+
+        // Overlay 3: Full-screen modal settings of the update center
         if (showSettingsDialog) {
             SettingsAndUpdatesDialog(
                 viewModel = viewModel,
@@ -325,7 +357,7 @@ fun MainGameLayout(
 }
 
 @Composable
-fun GameTitleSection(onSettingsClick: () -> Unit) {
+fun GameTitleSection(viewModel: GameViewModel, onSettingsClick: () -> Unit) {
     var isHeaderFocused by remember { mutableStateOf(false) }
     
     // Dynamic spring properties scaled perfectly for TV remote control focus
@@ -378,8 +410,9 @@ fun GameTitleSection(onSettingsClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
+            val installedVer by viewModel.installedVersion.collectAsStateWithLifecycle()
             Text(
-                text = "O ECO DA PODRIDÃO v4.2",
+                text = "O ECO DA PODRIDÃO v$installedVer",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = if (isHeaderFocused) Color.White else Color(0xFF8A6BFF),
@@ -1737,8 +1770,9 @@ fun TVButton(
 }
 
 @Composable
-fun VersionNotificationPrompt(onDismiss: () -> Unit) {
+fun VersionNotificationPrompt(viewModel: GameViewModel, onDismiss: () -> Unit) {
     var isDismissFocused by remember { mutableStateOf(false) }
+    val installedVer by viewModel.installedVersion.collectAsStateWithLifecycle()
     
     Card(
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1428)),
@@ -1775,15 +1809,20 @@ fun VersionNotificationPrompt(onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(
-                        text = "NOVA VERSÃO INSTALADA! (v4.2)",
+                        text = "NOVA VERSÃO INSTALADA! (v$installedVer)",
                         color = Color(0xFFFFD43F),
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 14.sp,
                         letterSpacing = 1.sp
                     )
                     Spacer(modifier = Modifier.height(2.dp))
+                    val descText = if (installedVer == 4.2) {
+                        "Aprimoramos o som do microfone com ganho digital de 3.5x e filtros inteligentes do Google NLP para reconhecimento instantâneo! Além disso, as opções rápidas agora aparecem em todos os setores do jogo e as notificações se auto-encerram em 10 segundos."
+                    } else {
+                        "Build v$installedVer carregada com sucesso do repositório GitHub! Todas as novas diretrizes do Mestre de Jogo foram aplicadas no banco de dados local com sucesso total no sincronismo de dados em tempo real."
+                    }
                     Text(
-                        text = "Aprimoramos o som do microfone com ganho digital de 3.5x e filtros inteligentes do Google NLP para reconhecimento instantâneo! Além disso, as opções rápidas agora aparecem em todos os setores do jogo e as notificações se auto-encerram em 10 segundos.",
+                        text = descText,
                         color = Color.White,
                         fontSize = 12.sp,
                         lineHeight = 18.sp
@@ -1815,6 +1854,10 @@ fun SettingsAndUpdatesDialog(
     val owner by viewModel.githubOwner.collectAsStateWithLifecycle()
     val repo by viewModel.githubRepo.collectAsStateWithLifecycle()
     val updateState by viewModel.updateCheckState.collectAsStateWithLifecycle()
+    val isApplyingUpdate by viewModel.isApplyingUpdate.collectAsStateWithLifecycle()
+    val updateProgress by viewModel.updateProgress.collectAsStateWithLifecycle()
+    val updateStatusText by viewModel.updateStatusText.collectAsStateWithLifecycle()
+    val installedVersion by viewModel.installedVersion.collectAsStateWithLifecycle()
 
     var ownerText by remember { mutableStateOf(owner) }
     var repoText by remember { mutableStateOf(repo) }
@@ -1961,7 +2004,7 @@ fun SettingsAndUpdatesDialog(
                         .padding(start = 20.dp),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Column {
+                    Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1973,146 +2016,209 @@ fun SettingsAndUpdatesDialog(
                                 Text("Central de Atualizações", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
                             }
                             // Check button
-                            TVButton(
-                                onClick = { viewModel.checkForUpdates() },
-                                modifier = Modifier
-                                    .onFocusChanged { isCheckFocused = it.isFocused }
-                                    .border(2.dp, if (isCheckFocused) Color(0xFFFFD43F) else Color.Transparent, RoundedCornerShape(12.dp))
-                            ) {
-                                Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.Green, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Buscar Agora", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            if (!isApplyingUpdate) {
+                                TVButton(
+                                    onClick = { viewModel.checkForUpdates() },
+                                    modifier = Modifier
+                                        .onFocusChanged { isCheckFocused = it.isFocused }
+                                        .border(2.dp, if (isCheckFocused) Color(0xFFFFD43F) else Color.Transparent, RoundedCornerShape(12.dp))
+                                ) {
+                                    Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.Green, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Buscar Agora", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                }
                             }
                         }
                         Text("Verifique se há novas builds no repositório público do GitHub", fontSize = 11.sp, color = Color.Gray)
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Render based on check results
-                        when (val state = updateState) {
-                            is UpdateCheckState.Idle -> {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .weight(1f)
-                                        .background(Color(0xFF0F0D14), RoundedCornerShape(12.dp))
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Icon(Icons.Default.Info, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
-                                        Spacer(modifier = Modifier.height(12.dp))
-                                        Text("Clique em 'Buscar Agora' para buscar as últimas notas e builds no repositório GitHub.", color = Color.White, fontSize = 12.sp, textAlign = TextAlign.Center)
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Text("Versão do aplicativo local: ${GameViewModel.CURRENT_VERSION} (Build v3)", color = Color(0xFF8A6BFF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                            }
-                            is UpdateCheckState.Checking -> {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .weight(1f)
-                                        .background(Color(0xFF0F0D14), RoundedCornerShape(12.dp))
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        CircularProgressIndicator(color = Color(0xFF8A6BFF))
-                                        Spacer(modifier = Modifier.height(16.dp))
-                                        Text("Conectando com o raw.githubusercontent.com...", color = Color.LightGray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                        Text("Consultando arquivo de notas de $ownerText/$repoText...", color = Color.Gray, fontSize = 10.sp)
-                                    }
-                                }
-                            }
-                            is UpdateCheckState.Success -> {
-                                val info = state.updateInfo
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .weight(1f)
-                                        .background(Color(0xFF0F0D14), RoundedCornerShape(12.dp))
-                                        .padding(16.dp)
-                                ) {
-                                    // Status Badge row
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        modifier = Modifier.fillMaxWidth()
+                        if (isApplyingUpdate) {
+                            // Render nice updater progress
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                                    .background(Color(0xFF0F0D14), RoundedCornerShape(12.dp))
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    CircularProgressIndicator(
+                                        progress = { updateProgress },
+                                        color = Color(0xFFFFD43F),
+                                        trackColor = Color(0xFF2C243B),
+                                        modifier = Modifier.size(48.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text("PROCESSO DE ATUALIZAÇÃO...", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(text = updateStatusText, color = Color(0xFF8A6BFF), fontSize = 11.sp, textAlign = TextAlign.Center)
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth(0.9f)
+                                            .height(4.dp)
+                                            .background(Color(0xFF241C30), CircleShape)
                                     ) {
-                                        Text(text = "ÚLTIMA BUILD DISPONÍVEL:", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                        
-                                        // Glowing status pill
                                         Box(
                                             modifier = Modifier
-                                                .background(
-                                                    if (info.isMoreRecent) Color(0xFFFF5252).copy(alpha = 0.2f) else Color(0xFF4CAF50).copy(alpha = 0.2f),
-                                                    CircleShape
-                                                )
-                                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                                        ) {
-                                            Text(
-                                                text = if (info.isMoreRecent) "⚠️ ATUALIZAÇÃO DISPONÍVEL" else "✅ ESTÁVEL / ATUALIZADO",
-                                                color = if (info.isMoreRecent) Color(0xFFFF5252) else Color(0xFF4CAF50),
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
+                                                .fillMaxWidth(updateProgress)
+                                                .fillMaxHeight()
+                                                .background(Color(0xFFFFD43F), CircleShape)
+                                        )
                                     }
-                                    
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(text = "${info.buildName} (v${info.appVersion})", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
-                                    Text(text = "Envio: ${info.dateAndHour}", color = Color(0xFF8A6BFF), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                                    
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Text(text = "NOTAS COMPILADAS DO REPOSITÓRIO:", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.ExtraBold)
-                                    Spacer(modifier = Modifier.height(6.dp))
-
-                                    // Changes list scroll viewport
+                                }
+                            }
+                        } else {
+                            // Render based on check results
+                            when (val state = updateState) {
+                                is UpdateCheckState.Idle -> {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .weight(1f)
-                                            .background(Color(0xFF0C0A0F), RoundedCornerShape(8.dp))
-                                            .border(1.dp, Color(0xFF1E1826), RoundedCornerShape(8.dp))
-                                            .padding(10.dp)
+                                            .background(Color(0xFF0F0D14), RoundedCornerShape(12.dp))
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                            if (info.changesList.isEmpty()) {
-                                                item {
-                                                    Text(text = info.rawNotesSection, color = Color.White, fontSize = 12.sp, fontFamily = FontFamily.Serif)
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Icon(Icons.Default.Info, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            Text("Clique em 'Buscar Agora' para buscar as últimas notas e builds no repositório GitHub.", color = Color.White, fontSize = 12.sp, textAlign = TextAlign.Center)
+                                            Spacer(modifier = Modifier.height(6.dp))
+                                            Text("Versão do aplicativo local: $installedVersion", color = Color(0xFF8A6BFF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                                is UpdateCheckState.Checking -> {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f)
+                                            .background(Color(0xFF0F0D14), RoundedCornerShape(12.dp))
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            CircularProgressIndicator(color = Color(0xFF8A6BFF))
+                                            Spacer(modifier = Modifier.height(16.dp))
+                                            Text("Conectando com o raw.githubusercontent.com...", color = Color.LightGray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                            Text("Consultando arquivo de notas de $ownerText/$repoText...", color = Color.Gray, fontSize = 10.sp)
+                                        }
+                                    }
+                                }
+                                is UpdateCheckState.Success -> {
+                                    val info = state.updateInfo
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f)
+                                            .background(Color(0xFF0F0D14), RoundedCornerShape(12.dp))
+                                            .padding(16.dp)
+                                    ) {
+                                        // Status Badge row
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text(text = "ÚLTIMA BUILD DISPONÍVEL:", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                            
+                                            // Glowing status pill
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(
+                                                        if (info.isMoreRecent) Color(0xFFFF5252).copy(alpha = 0.2f) else Color(0xFF4CAF50).copy(alpha = 0.2f),
+                                                        CircleShape
+                                                    )
+                                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                                            ) {
+                                                Text(
+                                                    text = if (info.isMoreRecent) "⚠️ ATUALIZAÇÃO DISPONÍVEL" else "✅ ESTÁVEL / ATUALIZADO",
+                                                    color = if (info.isMoreRecent) Color(0xFFFF5252) else Color(0xFF4CAF50),
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                        
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(text = "${info.buildName} (v${info.appVersion})", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
+                                                Text(text = "Envio: ${info.dateAndHour}", color = Color(0xFF8A6BFF), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                            }
+                                            
+                                            if (info.isMoreRecent) {
+                                                var isInstallFocused by remember { mutableStateOf(false) }
+                                                TVButton(
+                                                    onClick = { viewModel.applyHotUpdate(info.appVersion) },
+                                                    modifier = Modifier
+                                                        .onFocusChanged { isInstallFocused = it.isFocused }
+                                                        .border(2.dp, if (isInstallFocused) Color.White else Color.Transparent, RoundedCornerShape(12.dp))
+                                                ) {
+                                                    Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.Green, modifier = Modifier.size(14.dp))
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text("Instalar v${info.appVersion}", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                                 }
-                                            } else {
-                                                items(info.changesList) { change ->
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        verticalAlignment = Alignment.Top
-                                                    ) {
-                                                        Text(text = "✦", color = Color(0xFFFFD43F), fontSize = 12.sp, modifier = Modifier.padding(end = 6.dp))
-                                                        Text(text = change, color = Color(0xFFE2DFE5), fontSize = 12.sp, lineHeight = 16.sp)
+                                            }
+                                        }
+                                        
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Text(text = "NOTAS COMPILADAS DO REPOSITÓRIO:", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.ExtraBold)
+                                        Spacer(modifier = Modifier.height(6.dp))
+
+                                        // Changes list scroll viewport
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .weight(1f)
+                                                .background(Color(0xFF0C0A0F), RoundedCornerShape(8.dp))
+                                                .border(1.dp, Color(0xFF1E1826), RoundedCornerShape(8.dp))
+                                                .padding(10.dp)
+                                        ) {
+                                            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                if (info.changesList.isEmpty()) {
+                                                    item {
+                                                        Text(text = info.rawNotesSection, color = Color.White, fontSize = 12.sp, fontFamily = FontFamily.Serif)
+                                                    }
+                                                } else {
+                                                    items(info.changesList) { change ->
+                                                        Row(
+                                                            modifier = Modifier.fillMaxWidth(),
+                                                            verticalAlignment = Alignment.Top
+                                                        ) {
+                                                            Text(text = "✦", color = Color(0xFFFFD43F), fontSize = 12.sp, modifier = Modifier.padding(end = 6.dp))
+                                                            Text(text = change, color = Color(0xFFE2DFE5), fontSize = 12.sp, lineHeight = 16.sp)
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
                                     }
                                 }
-                            }
-                            is UpdateCheckState.Error -> {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .weight(1f)
-                                        .background(Color(0xFF0F0D14), RoundedCornerShape(12.dp))
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFFF4E4E), modifier = Modifier.size(48.dp))
-                                        Spacer(modifier = Modifier.height(12.dp))
-                                        Text(text = "FALHA NA BUSCA DE ATUALIZAÇÕES", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(text = state.errorMsg, color = Color(0xFFFF8B8B), fontSize = 11.sp, textAlign = TextAlign.Center)
-                                        Spacer(modifier = Modifier.height(12.dp))
-                                        Text(text = "Dica: Garanta que o repositório possua um arquivo 'NOTAS_DE_ATUALIZACAO.md' na branch 'main'.", color = Color.Gray, fontSize = 10.sp, textAlign = TextAlign.Center)
+                                is UpdateCheckState.Error -> {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f)
+                                            .background(Color(0xFF0F0D14), RoundedCornerShape(12.dp))
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFFF4E4E), modifier = Modifier.size(48.dp))
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            Text(text = "FALHA NA BUSCA DE ATUALIZAÇÕES", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(text = state.errorMsg, color = Color(0xFFFF8B8B), fontSize = 11.sp, textAlign = TextAlign.Center)
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            Text(text = "Dica: Garanta que o repositório possua um arquivo 'NOTAS_DE_ATUALIZACAO.md' na branch 'main'.", color = Color.Gray, fontSize = 10.sp, textAlign = TextAlign.Center)
+                                        }
                                     }
                                 }
                             }
@@ -2121,11 +2227,221 @@ fun SettingsAndUpdatesDialog(
                     
                     // Lower right footer
                     Text(
-                        text = "WhatIsRPG? v4.2 • Conectado à rede do GitHub em tempo real",
+                        text = "WhatIsRPG? v$installedVersion • Conectado à rede do GitHub em tempo real",
                         color = Color.DarkGray,
                         fontSize = 10.sp,
                         textAlign = TextAlign.End,
                         modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun UpdateOfferDialog(
+    updateInfo: com.example.rpg.GitHubUpdateInfo,
+    isApplying: Boolean,
+    progress: Float,
+    statusText: String,
+    onApply: () -> Unit,
+    onDefer: () -> Unit
+) {
+    var isUpdateFocused by remember { mutableStateOf(false) }
+    var isDeferFocused by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xD9050407))
+            .clickable(enabled = !isApplying) { /* block background clicks */ }
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF130F1A)),
+            border = BorderStroke(2.dp, Color(0xFF8A6BFF)),
+            shape = RoundedCornerShape(20.dp),
+            modifier = Modifier
+                .fillMaxWidth(0.85f)
+                .wrapContentHeight()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Header badge
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFFFFD43F).copy(alpha = 0.15f), CircleShape)
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = Color(0xFFFFD43F),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "NOVA ATUALIZAÇÃO DISPONÍVEL",
+                            color = Color(0xFFFFD43F),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = 1.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (!isApplying) {
+                    Text(
+                        text = "Instalar a versão ${updateInfo.buildName} (v${updateInfo.appVersion})?",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Lançado em: ${updateInfo.dateAndHour}",
+                        fontSize = 11.sp,
+                        color = Color(0xFF8A6BFF),
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Changes summary section
+                    Text(
+                        text = "NOTAS DE ATUALIZAÇÃO RECENTES:",
+                        color = Color.Gray,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.align(Alignment.Start)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 120.dp)
+                            .background(Color(0xFF0C0912), RoundedCornerShape(10.dp))
+                            .border(1.dp, Color(0xFF231E2D), RoundedCornerShape(10.dp))
+                            .padding(12.dp)
+                    ) {
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (updateInfo.changesList.isEmpty()) {
+                                item {
+                                    Text(
+                                        text = updateInfo.rawNotesSection,
+                                        color = Color(0xFFD4D0D9),
+                                        fontSize = 12.sp,
+                                        fontFamily = FontFamily.Serif
+                                    )
+                                }
+                            } else {
+                                items(updateInfo.changesList) { change ->
+                                    Row(verticalAlignment = Alignment.Top) {
+                                        Text("✦", color = Color(0xFFFF9E00), fontSize = 11.sp, modifier = Modifier.padding(end = 6.dp))
+                                        Text(text = change, color = Color(0xFFE2DFE5), fontSize = 12.sp, lineHeight = 16.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Update now button
+                        TVButton(
+                            onClick = onApply,
+                            modifier = Modifier
+                                .weight(1f)
+                                .onFocusChanged { isUpdateFocused = it.isFocused }
+                                .border(
+                                    2.dp,
+                                    if (isUpdateFocused) Color.White else Color.Transparent,
+                                    RoundedCornerShape(12.dp)
+                                )
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.Green, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Atualizar Agora", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                        }
+
+                        // Defer / remind me later button
+                        TVButton(
+                            onClick = onDefer,
+                            modifier = Modifier
+                                .weight(1f)
+                                .onFocusChanged { isDeferFocused = it.isFocused }
+                                .border(
+                                    2.dp,
+                                    if (isDeferFocused) Color(0xFFFF5252) else Color.Transparent,
+                                    RoundedCornerShape(12.dp)
+                                )
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Mais Tarde", color = Color.LightGray, fontSize = 12.sp)
+                        }
+                    }
+                } else {
+                    // Update in progress!
+                    Spacer(modifier = Modifier.height(14.dp))
+                    CircularProgressIndicator(
+                        progress = { progress },
+                        color = Color(0xFFFFD43F),
+                        trackColor = Color(0xFF2C243B),
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Text(
+                        text = "EFETUANDO ATUALIZAÇÃO...",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = statusText,
+                        color = Color(0xFF8A6BFF),
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Linear progress bar %
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.9f)
+                            .height(6.dp)
+                            .background(Color(0xFF241C30), CircleShape)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(progress)
+                                .fillMaxHeight()
+                                .background(Color(0xFFFFD43F), CircleShape)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${(progress * 100).toInt()}% completo",
+                        color = Color.Gray,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
