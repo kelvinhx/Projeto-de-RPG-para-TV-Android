@@ -1,0 +1,6 @@
+{
+  "name": "WhatIsRPG?",
+  "description": "An immersive voice-controlled retro RPG for Android TV, orchestrated by Gemini AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
