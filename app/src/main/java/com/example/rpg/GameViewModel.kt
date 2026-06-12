@@ -27,13 +27,25 @@ sealed class AudioState {
     object SpeakingNarrator : AudioState()
 }
 
+sealed class UpdateCheckState {
+    object Idle : UpdateCheckState()
+    object Checking : UpdateCheckState()
+    data class Success(val updateInfo: GitHubUpdateInfo) : UpdateCheckState()
+    data class Error(val errorMsg: String) : UpdateCheckState()
+}
+
 class GameViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
+
+    companion object {
+        const val CURRENT_VERSION = 3.0
+    }
 
     private val context = application.applicationContext
     private val database = AppDatabase.getDatabase(context)
     private val saveDao = database.gameSaveDao()
     private val geminiRepository = GeminiRepository()
     private val audioRecorder = AudioRecorder(context)
+    private val prefs = context.getSharedPreferences("whatisrpg_prefs", android.content.Context.MODE_PRIVATE)
 
     // Current full state of the RPG engine
     private val _gameState = MutableStateFlow(GameState())
@@ -42,6 +54,19 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
     // Status on audio recorder/speech
     private val _audioState = MutableStateFlow<AudioState>(AudioState.Idle)
     val audioState: StateFlow<AudioState> = _audioState.asStateFlow()
+
+    // GitHub Update configuration and status variables
+    private val _githubOwner = MutableStateFlow(prefs.getString("github_owner", "rebeijar") ?: "rebeijar")
+    val githubOwner: StateFlow<String> = _githubOwner.asStateFlow()
+
+    private val _githubRepo = MutableStateFlow(prefs.getString("github_repo", "WhatIsRPG") ?: "WhatIsRPG")
+    val githubRepo: StateFlow<String> = _githubRepo.asStateFlow()
+
+    private val _updateCheckState = MutableStateFlow<UpdateCheckState>(UpdateCheckState.Idle)
+    val updateCheckState: StateFlow<UpdateCheckState> = _updateCheckState.asStateFlow()
+
+    private val _showFirstRunNotification = MutableStateFlow(false)
+    val showFirstRunNotification: StateFlow<Boolean> = _showFirstRunNotification.asStateFlow()
 
     // Temporary info about transcribed input
     private val _transcription = MutableStateFlow<String>("")
@@ -83,6 +108,49 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
                     // Initialize with a welcoming log history entry
                     initializeFreshGame()
                 }
+            }
+        }
+
+        // First run check for version updates on launch
+        val lastSeen = prefs.getFloat("last_seen_version", 0.0f)
+        if (lastSeen < CURRENT_VERSION.toFloat()) {
+            _showFirstRunNotification.value = true
+        }
+    }
+
+    fun saveGithubSettings(owner: String, repo: String) {
+        val cleanOwner = owner.trim().ifEmpty { "rebeijar" }
+        val cleanRepo = repo.trim().ifEmpty { "WhatIsRPG" }
+        _githubOwner.value = cleanOwner
+        _githubRepo.value = cleanRepo
+        prefs.edit()
+            .putString("github_owner", cleanOwner)
+            .putString("github_repo", cleanRepo)
+            .apply()
+    }
+
+    fun dismissFirstRunNotification() {
+        _showFirstRunNotification.value = false
+        prefs.edit().putFloat("last_seen_version", CURRENT_VERSION.toFloat()).apply()
+    }
+
+    fun checkForUpdates() {
+        _updateCheckState.value = UpdateCheckState.Checking
+        viewModelScope.launch {
+            try {
+                val info = GitHubUpdateService.checkLatestUpdate(
+                    owner = _githubOwner.value,
+                    repo = _githubRepo.value,
+                    currentVersion = CURRENT_VERSION
+                )
+                if (info != null) {
+                    _updateCheckState.value = UpdateCheckState.Success(info)
+                } else {
+                    _updateCheckState.value = UpdateCheckState.Error("Não foi possível carregar as notas de atualização do GitHub. Verifique as configurações do repositório ou de rede.")
+                }
+            } catch (e: Exception) {
+                Log.e("GameViewModel", "Update check exception", e)
+                _updateCheckState.value = UpdateCheckState.Error("Ocorreu um erro ao conectar: ${e.message}")
             }
         }
     }

@@ -209,89 +209,127 @@ fun MainGameLayout(
     transcription: String,
     viewModel: GameViewModel
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF09080C))
-    ) {
-        // SIDEBAR STATS & GRIMOIRE PANEL (35% Width)
-        Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(0.35f)
-                .background(Color(0xFF131118))
-                .border(1.dp, Color(0xFF1E1B24))
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp)
-        ) {
-            GameTitleSection()
-            Spacer(modifier = Modifier.height(16.dp))
+    var showSettingsDialog by remember { mutableStateOf(false) }
+    val showFirstRunNotification by viewModel.showFirstRunNotification.collectAsStateWithLifecycle()
 
-            // Player Stats Area
-            if (gameState.creationStep == "RUNNING") {
-                PlayerStatsView(gameState.playerState, viewModel)
-                Spacer(modifier = Modifier.height(20.dp))
-                WorldStatusView(gameState.worldState)
-                Spacer(modifier = Modifier.height(20.dp))
-                ActiveNpcListView(gameState.npcs)
-            } else {
-                CharacterCreationStepPanel(gameState.creationStep, gameState.playerState)
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF09080C))
+        ) {
+            // SIDEBAR STATS & GRIMOIRE PANEL (35% Width)
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(0.35f)
+                    .background(Color(0xFF131118))
+                    .border(1.dp, Color(0xFF1E1B24))
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp)
+            ) {
+                GameTitleSection(onSettingsClick = { showSettingsDialog = true })
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Player Stats Area
+                if (gameState.creationStep == "RUNNING") {
+                    PlayerStatsView(gameState.playerState, viewModel)
+                    Spacer(modifier = Modifier.height(20.dp))
+                    WorldStatusView(gameState.worldState)
+                    Spacer(modifier = Modifier.height(20.dp))
+                    ActiveNpcListView(gameState.npcs)
+                } else {
+                    CharacterCreationStepPanel(gameState.creationStep, gameState.playerState)
+                }
+            }
+
+            // NARRATIVE CENTER & CORE INTERACTION PANEL (65% Width)
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Narrative logs scroll
+                NarrativeBox(
+                    history = gameState.history,
+                    creationStep = gameState.creationStep,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // AI Speech and Remote Mic Record Indicator / Visualizer Area
+                VoiceRecorderConsole(
+                    audioState = audioState,
+                    transcription = transcription,
+                    viewModel = viewModel,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Curated Options Buttons (Perfect for D-Pad click interaction on TV)
+                CuratedOptionsPanel(
+                    options = gameState.options,
+                    onOptionSelect = { text -> viewModel.enterCommandLine(text) },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
 
-        // NARRATIVE CENTER & CORE INTERACTION PANEL (65% Width)
-        Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Narrative logs scroll
-            NarrativeBox(
-                history = gameState.history,
-                creationStep = gameState.creationStep,
+        // Overlay 1: Non-intrusive Update notification prompt at startup
+        if (showFirstRunNotification) {
+            Box(
                 modifier = Modifier
-                    .weight(1f)
                     .fillMaxWidth()
-            )
+                    .align(Alignment.TopCenter)
+                    .background(Color.Transparent)
+            ) {
+                VersionNotificationPrompt(onDismiss = { viewModel.dismissFirstRunNotification() })
+            }
+        }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // AI Speech and Remote Mic Record Indicator / Visualizer Area
-            VoiceRecorderConsole(
-                audioState = audioState,
-                transcription = transcription,
+        // Overlay 2: Full-screen modal settings of the update center
+        if (showSettingsDialog) {
+            SettingsAndUpdatesDialog(
                 viewModel = viewModel,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Curated Options Buttons (Perfect for D-Pad click interaction on TV)
-            CuratedOptionsPanel(
-                options = gameState.options,
-                onOptionSelect = { text -> viewModel.enterCommandLine(text) },
-                modifier = Modifier.fillMaxWidth()
+                onDismiss = { showSettingsDialog = false }
             )
         }
     }
 }
 
 @Composable
-fun GameTitleSection() {
+fun GameTitleSection(onSettingsClick: () -> Unit) {
+    var isHeaderFocused by remember { mutableStateOf(false) }
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (isHeaderFocused) Color(0xFF272133) else Color.Transparent)
+            .border(1.dp, if (isHeaderFocused) Color(0xFF8A6BFF) else Color.Transparent, RoundedCornerShape(12.dp))
+            .focusable(true)
+            .onFocusChanged { isHeaderFocused = it.isFocused }
+            .clickable { onSettingsClick() }
+            .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth()
         ) {
             Icon(
-                imageVector = Icons.Default.Star,
-                contentDescription = null,
-                tint = Color(0xFFFFD43F),
-                modifier = Modifier.size(24.dp)
+                imageVector = Icons.Default.Settings,
+                contentDescription = "Configurações",
+                tint = if (isHeaderFocused) Color(0xFFFFD43F) else Color(0xFFB19EFF),
+                modifier = Modifier.size(22.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
@@ -303,14 +341,27 @@ fun GameTitleSection() {
                 fontSize = 24.sp
             )
         }
-        Text(
-            text = "O Eco da Podridão",
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF8A6BFF),
-            letterSpacing = 2.sp,
-            fontSize = 11.sp
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "O ECO DA PODRIDÃO v3.0",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                color = if (isHeaderFocused) Color.White else Color(0xFF8A6BFF),
+                letterSpacing = 1.sp,
+                fontSize = 10.sp
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Box(
+                modifier = Modifier
+                    .background(Color(0xFF2C243B), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 4.dp, vertical = 2.dp)
+            ) {
+                Text("CONFIGS", color = Color(0xFFFFD43F), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+            }
+        }
         Box(
             modifier = Modifier
                 .padding(top = 8.dp)
@@ -1083,6 +1134,402 @@ fun TVButton(
             horizontalArrangement = Arrangement.Center
         ) {
             content()
+        }
+    }
+}
+
+@Composable
+fun VersionNotificationPrompt(onDismiss: () -> Unit) {
+    var isDismissFocused by remember { mutableStateOf(false) }
+    
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1428)),
+        border = BorderStroke(2.dp, Color(0xFFFFD43F)),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .testTag("version_update_notification_card")
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(Color(0xFFFFD43F).copy(alpha = 0.2f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = Color(0xFFFFD43F),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = "NOVA VERSÃO INSTALADA! (v3.0)",
+                        color = Color(0xFFFFD43F),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 14.sp,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Implementado o novo Centro de Atualizações em tempo real integrado ao GitHub! Agora ficou fácil verificar novas builds e correções direto do seu console de TV.",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        lineHeight = 18.sp
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            TVButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .onFocusChanged { isDismissFocused = it.isFocused }
+                    .border(
+                        2.dp,
+                        if (isDismissFocused) Color.White else Color.Transparent,
+                        RoundedCornerShape(12.dp)
+                    )
+            ) {
+                Text("Entendido", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsAndUpdatesDialog(
+    viewModel: GameViewModel,
+    onDismiss: () -> Unit
+) {
+    val owner by viewModel.githubOwner.collectAsStateWithLifecycle()
+    val repo by viewModel.githubRepo.collectAsStateWithLifecycle()
+    val updateState by viewModel.updateCheckState.collectAsStateWithLifecycle()
+
+    var ownerText by remember { mutableStateOf(owner) }
+    var repoText by remember { mutableStateOf(repo) }
+
+    var isOwnerFocused by remember { mutableStateOf(false) }
+    var isRepoFocused by remember { mutableStateOf(false) }
+    var isCheckFocused by remember { mutableStateOf(false) }
+    var isResetSettingsFocused by remember { mutableStateOf(false) }
+    var isCloseFocused by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xE6060408))
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF16131C)),
+            border = BorderStroke(1.dp, Color(0xFF322842)),
+            shape = RoundedCornerShape(20.dp),
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .fillMaxHeight(0.95f)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp)
+            ) {
+                // Left side: Config inputs (40% width)
+                Column(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .weight(0.4f)
+                        .padding(end = 16.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Settings, contentDescription = null, tint = Color(0xFFFFD43F), modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Configurações do Jogo", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                        Text("Personalize os parâmetros de conexão de dados do WhatIsRPG?", fontSize = 11.sp, color = Color.Gray)
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // GitHub Owner Field
+                        Text("GITHUB OWNER / PROPRIETÁRIO:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF8A6BFF))
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = ownerText,
+                            onValueChange = { 
+                                ownerText = it 
+                                viewModel.saveGithubSettings(it, repoText)
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = Color(0xFF8A6BFF),
+                                unfocusedBorderColor = Color(0xFF2C243B),
+                                focusedContainerColor = Color(0xFF1C1826)
+                            ),
+                            placeholder = { Text("Ex: rebeijar", color = Color.DarkGray, fontSize = 12.sp) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .onFocusChanged { isOwnerFocused = it.isFocused }
+                                .border(1.dp, if (isOwnerFocused) Color(0xFFFFD43F) else Color.Transparent, RoundedCornerShape(8.dp))
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // GitHub Repository Field
+                        Text("REPOSITÓRIO GITHUB:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF8A6BFF))
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = repoText,
+                            onValueChange = { 
+                                repoText = it 
+                                viewModel.saveGithubSettings(ownerText, it)
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = Color(0xFF8A6BFF),
+                                unfocusedBorderColor = Color(0xFF2C243B),
+                                focusedContainerColor = Color(0xFF1C1826)
+                            ),
+                            placeholder = { Text("Ex: WhatIsRPG", color = Color.DarkGray, fontSize = 12.sp) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .onFocusChanged { isRepoFocused = it.isFocused }
+                                .border(1.dp, if (isRepoFocused) Color(0xFFFFD43F) else Color.Transparent, RoundedCornerShape(8.dp))
+                        )
+                    }
+
+                    // Lower Left Actions
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        TVButton(
+                            onClick = { 
+                                ownerText = "rebeijar"
+                                repoText = "WhatIsRPG"
+                                viewModel.saveGithubSettings("rebeijar", "WhatIsRPG")
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .onFocusChanged { isResetSettingsFocused = it.isFocused }
+                                .border(2.dp, if (isResetSettingsFocused) Color.White else Color.Transparent, RoundedCornerShape(12.dp))
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Restaurar Padrão", color = Color.LightGray, fontSize = 12.sp)
+                        }
+
+                        TVButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .onFocusChanged { isCloseFocused = it.isFocused }
+                                .border(2.dp, if (isCloseFocused) Color(0xFFFF4E4E) else Color.Transparent, RoundedCornerShape(12.dp))
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Fechar Configurações", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                    }
+                }
+
+                // Divider line separator
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(1.dp)
+                        .background(Color(0xFF2D253B))
+                )
+
+                // Right side: Update Details panel (60% width)
+                Column(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .weight(0.6f)
+                        .padding(start = 20.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD43F), modifier = Modifier.size(24.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Central de Atualizações", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                            // Check button
+                            TVButton(
+                                onClick = { viewModel.checkForUpdates() },
+                                modifier = Modifier
+                                    .onFocusChanged { isCheckFocused = it.isFocused }
+                                    .border(2.dp, if (isCheckFocused) Color(0xFFFFD43F) else Color.Transparent, RoundedCornerShape(12.dp))
+                            ) {
+                                Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.Green, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Buscar Agora", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                        Text("Verifique se há novas builds no repositório público do GitHub", fontSize = 11.sp, color = Color.Gray)
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Render based on check results
+                        when (val state = updateState) {
+                            is UpdateCheckState.Idle -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f)
+                                        .background(Color(0xFF0F0D14), RoundedCornerShape(12.dp))
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(Icons.Default.Info, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Text("Clique em 'Buscar Agora' para buscar as últimas notas e builds no repositório GitHub.", color = Color.White, fontSize = 12.sp, textAlign = TextAlign.Center)
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text("Versão do aplicativo local: ${GameViewModel.CURRENT_VERSION} (Build v3)", color = Color(0xFF8A6BFF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                            is UpdateCheckState.Checking -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f)
+                                        .background(Color(0xFF0F0D14), RoundedCornerShape(12.dp))
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        CircularProgressIndicator(color = Color(0xFF8A6BFF))
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Text("Conectando com o raw.githubusercontent.com...", color = Color.LightGray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        Text("Consultando arquivo de notas de $ownerText/$repoText...", color = Color.Gray, fontSize = 10.sp)
+                                    }
+                                }
+                            }
+                            is UpdateCheckState.Success -> {
+                                val info = state.updateInfo
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f)
+                                        .background(Color(0xFF0F0D14), RoundedCornerShape(12.dp))
+                                        .padding(16.dp)
+                                ) {
+                                    // Status Badge row
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(text = "ÚLTIMA BUILD DISPONÍVEL:", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        
+                                        // Glowing status pill
+                                        Box(
+                                            modifier = Modifier
+                                                .background(
+                                                    if (info.isMoreRecent) Color(0xFFFF5252).copy(alpha = 0.2f) else Color(0xFF4CAF50).copy(alpha = 0.2f),
+                                                    CircleShape
+                                                )
+                                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = if (info.isMoreRecent) "⚠️ ATUALIZAÇÃO DISPONÍVEL" else "✅ ESTÁVEL / ATUALIZADO",
+                                                color = if (info.isMoreRecent) Color(0xFFFF5252) else Color(0xFF4CAF50),
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(text = "${info.buildName} (v${info.appVersion})", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
+                                    Text(text = "Envio: ${info.dateAndHour}", color = Color(0xFF8A6BFF), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                    
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text(text = "NOTAS COMPILADAS DO REPOSITÓRIO:", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.ExtraBold)
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    // Changes list scroll viewport
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f)
+                                            .background(Color(0xFF0C0A0F), RoundedCornerShape(8.dp))
+                                            .border(1.dp, Color(0xFF1E1826), RoundedCornerShape(8.dp))
+                                            .padding(10.dp)
+                                    ) {
+                                        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            if (info.changesList.isEmpty()) {
+                                                item {
+                                                    Text(text = info.rawNotesSection, color = Color.White, fontSize = 12.sp, fontFamily = FontFamily.Serif)
+                                                }
+                                            } else {
+                                                items(info.changesList) { change ->
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        verticalAlignment = Alignment.Top
+                                                    ) {
+                                                        Text(text = "✦", color = Color(0xFFFFD43F), fontSize = 12.sp, modifier = Modifier.padding(end = 6.dp))
+                                                        Text(text = change, color = Color(0xFFE2DFE5), fontSize = 12.sp, lineHeight = 16.sp)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            is UpdateCheckState.Error -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f)
+                                        .background(Color(0xFF0F0D14), RoundedCornerShape(12.dp))
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFFF4E4E), modifier = Modifier.size(48.dp))
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Text(text = "FALHA NA BUSCA DE ATUALIZAÇÕES", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(text = state.errorMsg, color = Color(0xFFFF8B8B), fontSize = 11.sp, textAlign = TextAlign.Center)
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Text(text = "Dica: Garanta que o repositório possua um arquivo 'NOTAS_DE_ATUALIZACAO.md' na branch 'main'.", color = Color.Gray, fontSize = 10.sp, textAlign = TextAlign.Center)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Lower right footer
+                    Text(
+                        text = "WhatIsRPG? v3.0 • Conectado à rede do GitHub em tempo real",
+                        color = Color.DarkGray,
+                        fontSize = 10.sp,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
         }
     }
 }

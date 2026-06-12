@@ -2,6 +2,29 @@
 
 Este arquivo de controle registra as modificações de build e novas implementações entregues à plataforma.
 
+## [Build v3] - Versão do Aplicativo: 3.0
+**Data e Hora do Envio:** 12 de Junho de 2026, às 16:30:00 BRT / 19:30:00 UTC
+
+### O que há de novo nesta Build:
+
+1. **Central de Atualizações de Jogo Conectada ao GitHub:**
+   - Construído o `GitHubUpdateService.kt` que interage diretamente com o repositório público do GitHub especificado nas configurações para baixar e parsear de forma reativa o arquivo `NOTAS_DE_ATUALIZACAO.md`.
+   - Implementado analisador léxico de Markdown que extrai de forma automática o nome da build, número de versão correspondente, data de submissão e lista detalhada de modificações.
+
+2. **Console de Configurações Dinâmicas do Repositório para Android TV:**
+   - Integrado um painel elegante de "Configurações do Jogo" acessado diretamente com a seleção D-Pad através da ativação do foco e clique no título principal na barra lateral.
+   - Fornecidos campos interativos focáveis para que proprietários e desenvolvedores possam alterar em tempo real o Proprietário (*GitHub Owner*) e o nome do Repositório (*GitHub Repository*) salvando instantaneamente no armazenamento privativo de `SharedPreferences`.
+
+3. **Status de Atualização em Tempo Real e Feedback Dinâmico:**
+   - Adicionado indicador de status interativo comparando a versão corrente do aplicativo (`v3.0 - Build 3`) com a última versão disponibilizada remotamente no GitHub.
+   - Renderização especializada de estados: Animação de Carregamento (*CircularProgressIndicator*), badges de conformidade estática ("estável / atualizado" ou "atualização disponível" com tons vibrantes de Material 3) e tratativa inteligente de erros com orientações corretivas em caso de conexão instável ou digitação inválida.
+
+4. **Notificação de Versão Não-Invasiva de Primeiro Acesso:**
+   - Integrado o banner reativo flutuante `VersionNotificationPrompt` na inicialização do aplicativo assim que o jogador instala uma nova distribuição de builds.
+   - O aviso é totalmente não invasivo e possui dismiss amigável pelo D-Pad que grava o ID de build no `SharedPreferences` para garantir que o prompt nunca trespasse em sessões subsequentes de jogabilidade.
+
+---
+
 ## [Build v2] - Versão do Aplicativo: 2.0
 **Data e Hora do Envio:** 12 de Junho de 2026, às 16:25:00 BRT / 19:25:00 UTC
 
