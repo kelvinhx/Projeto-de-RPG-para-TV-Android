@@ -2,6 +2,27 @@
 
 Este arquivo de controle registra as modificações de build e novas implementações entregues à plataforma.
 
+## [Build v4.5] - Versão do Aplicativo: 4.5
+**Data e Hora do Envio:** 13 de Junho de 2026, às 00:15:00 UTC / 21:15:00 BRT (anterior)
+
+### O que há de novo nesta Build:
+
+1. **Modernização Absoluta do Layout para Android TV (Flat & Expanded Views):**
+   - **Remoção de Acordeões Duplos e Colapsáveis:** Eliminada a necessidade de cliques duplos invasivos ou complexidades por D-pad para expandir as abas secundárias. Agora, Atributos de Alma (`PlayerAttributesView`), Grimório de Feitiços (`PlayerGrimoireView`), Sinfonia do Mundo/Ciclos (`WorldStatusView`) e Lista de NPCs Ativos (`ActiveNpcListView`) utilizam layouts planos, totalmente expandidos e prontos para focar e interagir instantaneamente.
+   - **Visual Premium e Clean:** Alinhados os tons translúcidos violetas/grafite com bordas de ouro e luz neon roxa de alta qualidade para acompanhar a identidade visual estabelecida na build anterior.
+
+2. **Equalizador Holográfico de Voz Dinâmico e Animado por Canvas ("Equalizer Waves in Console"):**
+   - O console de comandos de áudio (`VoiceRecorderConsole`) recebeu um visualizador dinâmico reativo aos diferentes estados de som do motor do jogo, eliminando telas estáticas e fornecendo telemetria animada em tempo real:
+     - **Gravando (Recording):** Spikes dinâmicos e picos em rubi neon simulando captação física de áudio por onda analógica tradicional.
+     - **IA Traduzindo (Transcribing):** Varredura horizontal por laser dourado neon demonstrando processamento inteligente das intenções fonéticas.
+     - **Dungeon Master Simulando (ProcessingTurn):** Ondas violetas pulsantes estelares em formato de pulso cósmico senoidal.
+     - **Voz Ativa de Narrador (SpeakingNarrator):** Ripples e pontos verdes esmeralda em fluxo reativo ao ritmo da leitura/TTS.
+
+3. **Guia e Calibração dos Focos de Controle:**
+   - Garantido que todas as listas de magias e NPCs informem seus estados por Text-To-Speech nativo no momento imediato de receber foco direcionado no controle remoto.
+
+---
+
 ## [Build v4.4] - Versão do Aplicativo: 4.4
 **Data e Hora do Envio:** 12 de Junho de 2026, às 19:02:00 BRT / 22:02:00 UTC
 
