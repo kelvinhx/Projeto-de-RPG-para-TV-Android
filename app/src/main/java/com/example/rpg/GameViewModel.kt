@@ -38,7 +38,7 @@ sealed class UpdateCheckState {
 class GameViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
 
     companion object {
-        const val CURRENT_VERSION = 4.8
+        const val CURRENT_VERSION = 4.9
     }
 
     private val context = application.applicationContext
@@ -1010,7 +1010,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
             5. CONEXÃO ON-LINE E CONHECIMENTO GLOBAL (Otimização de IA):
                - Você possui integração total com a Pesquisa Google (Google Search Grounding) para buscar informações on-line em tempo real. Sempre que necessário ou inspirador para a partida, use conexões on-line para pesquisar monstros lendários, folclores clássicos medievais, regras de RPGs clássicos (D&D, Pathfinder, etc.), dados demográficos históricos ou curiosidades geográficas, fundindo essas descobertas com o tom sombrio do Eco da Podridão de forma fluida nas suas respostas e narrações para torná-las imbatíveis e infinitamente criativas.
                
-            6. FORMATO DE RETORNO OBRIGATÓRIO (JSON):
+            6. SISTEMA DE SUGESTÃO DE AÇÕES DINÂMICAS DO JOGO:
+               - As opções sugeridas em 'curated_options' devem ser personalizadas e adaptadas dinamicamente à situação imediata do jogo, à classe do jogador, aos itens atuais no inventário, aos feitiços ou habilidades em seu grimório, e ao local/clima atual.
+               - Elas devem carregar os marcadores de prefixo exatos `[⚔️ Combate]`, `[🌌 Magia]`, `[🔍 Investigar]`, `[🗣️ Diálogo]` ou `[📦 Inventário]` antes do texto, incentivando o jogador de forma altamente conceitual e tática.
+               - Por exemplo, se o jogador possui "Lâmina Sombria" equipada ou está enfrentando um perigo físico, use `[⚔️ Combate]` ou `[📦 Inventário]`. Se houver um NPC presente para conversar, use `[🗣️ Diálogo]`. Se houver itens na sala ou mistério para investigar, use `[🔍 Investigar]`.
+               - Escreva sugestões longas de ações, ricas e literárias específicas, nunca opções vagas como "Atacar" ou "Correr".
+               
+            7. FORMATO DE RETORNO OBRIGATÓRIO (JSON):
                Você DEVE responder UNICAMENTE com um objeto JSON válido que possua a estrutura abaixo:
                {
                  "narrative": "Uma narração imersiva, rica, literária e envolvente em português (máximo de 3 parágrafos) descrevendo as consequências imediatas da ação do jogador, do ambiente e diálogos.",
@@ -1052,9 +1058,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
                    }
                  ],
                  "curated_options": [
-                   "Um comando curto em linguagem natural de ação tática de sobrevivência 1",
-                   "Um comando curto em linguagem natural de ação de diálogo ou inteligência 2",
-                   "Um comando curto em linguagem natural de exploração local do mundo 3"
+                   "[⚔️ Combate] Comando de ação tática de sobrevivência física baseado no cenário/perigo se combate ativo ou ameaça iminente",
+                   "[🌌 Magia] Comando de ação mágica/gravitacional conforme os feitiços conhecidos no grimório ou intelecto do herói",
+                   "[🔍 Investigar] Comando de exploração, análise sensorial de pistas, ou checagem de armadilhas baseada na percepção",
+                   "[🗣️ Diálogo] Comando de interação social de conversa, diplomacia, intimidação ou barganha com NPCs presentes"
                  ],
                  "combat_active": false // defina como true se a narrativa resultar em um confronto ativo com turno estruturado
                }

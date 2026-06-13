@@ -1742,6 +1742,70 @@ fun VoiceRecorderConsole(
     }
 }
 
+data class ParsedOption(
+    val category: String,
+    val icon: ImageVector,
+    val color: Color,
+    val text: String
+)
+
+fun parseOption(option: String): ParsedOption {
+    val cleanOption = option.trim()
+    
+    // Check for explicit prefix e.g. [⚔️ Combate] Atacar o lobo
+    val prefixRegex = Regex("^\\[(.*?)\\]\\s*(.*)$")
+    val matchResult = prefixRegex.matchEntire(cleanOption)
+    
+    if (matchResult != null) {
+        val requestedPrefix = matchResult.groupValues[1].lowercase()
+        val textBody = matchResult.groupValues[2]
+        
+        when {
+            requestedPrefix.contains("combat") || requestedPrefix.contains("combate") || requestedPrefix.contains("⚔") -> {
+                return ParsedOption("COMBATE", Icons.Default.Warning, Color(0xFFFF5252), textBody)
+            }
+            requestedPrefix.contains("magia") || requestedPrefix.contains("magic") || requestedPrefix.contains("feat") || requestedPrefix.contains("🌌") -> {
+                return ParsedOption("MAGIA", Icons.Default.Star, Color(0xFFB388FF), textBody)
+            }
+            requestedPrefix.contains("investigar") || requestedPrefix.contains("buscar") || requestedPrefix.contains("explorar") || requestedPrefix.contains("🔍") -> {
+                return ParsedOption("EXPLORAÇÃO", Icons.Default.Search, Color(0xFF40C4FF), textBody)
+            }
+            requestedPrefix.contains("falar") || requestedPrefix.contains("dialog") || requestedPrefix.contains("diálogo") || requestedPrefix.contains("conversar") || requestedPrefix.contains("🗣") -> {
+                return ParsedOption("DIÁLOGO", Icons.Default.Face, Color(0xFFFFD740), textBody)
+            }
+            requestedPrefix.contains("item") || requestedPrefix.contains("inventario") || requestedPrefix.contains("inventário") || requestedPrefix.contains("mochila") || requestedPrefix.contains("📦") -> {
+                return ParsedOption("INVENTÁRIO", Icons.Default.Build, Color(0xFF69F0AE), textBody)
+            }
+            else -> {
+                return ParsedOption(matchResult.groupValues[1].uppercase(), Icons.Default.Info, Color(0xFFFFD43F), textBody)
+            }
+        }
+    }
+    
+    // Fallback: Keyword based matching if no explicit prefix is present
+    val lower = cleanOption.lowercase()
+    return when {
+        lower.contains("atacar") || lower.contains("combater") || lower.contains("luta") || lower.contains("golpear") || lower.contains("espada") || lower.contains("confrontar") || lower.contains("desafiar") || lower.contains("frente") -> {
+            ParsedOption("COMBATE", Icons.Default.Warning, Color(0xFFFF5252), cleanOption)
+        }
+        lower.contains("esconjurar") || lower.contains("feitiço") || lower.contains("reza") || lower.contains("magia") || lower.contains("lunar") || lower.contains("gravidade") || lower.contains("mental") || lower.contains("invocar") || lower.contains("canalizar") -> {
+            ParsedOption("MAGIA", Icons.Default.Star, Color(0xFFB388FF), cleanOption)
+        }
+        lower.contains("investigar") || lower.contains("pesquisar") || lower.contains("procurar") || lower.contains("olhar") || lower.contains("verificar") || lower.contains("sondar") || lower.contains("explorar") || lower.contains("inspecionar") || lower.contains("analisar") -> {
+            ParsedOption("EXPLORAÇÃO", Icons.Default.Search, Color(0xFF40C4FF), cleanOption)
+        }
+        lower.contains("falar") || lower.contains("conversar") || lower.contains("barganhar") || lower.contains("perguntar") || lower.contains("interrogar") || lower.contains("dialogar") || lower.contains("responder") || lower.contains("revelar") -> {
+            ParsedOption("DIÁLOGO", Icons.Default.Face, Color(0xFFFFD740), cleanOption)
+        }
+        lower.contains("usar poção") || lower.contains("equipar") || lower.contains("inventário") || lower.contains("item") || lower.contains("beber") || lower.contains("abrir baú") || lower.contains("pegar") -> {
+            ParsedOption("INVENTÁRIO", Icons.Default.Build, Color(0xFF69F0AE), cleanOption)
+        }
+        else -> {
+            ParsedOption("SOBREVIVÊNCIA", Icons.Default.Info, Color(0xFFFFD43F), cleanOption)
+        }
+    }
+}
+
 @Composable
 fun CuratedOptionsPanel(
     options: List<String>,
@@ -1749,40 +1813,130 @@ fun CuratedOptionsPanel(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
-        Text(
-            text = "OPÇÕES RÁPIDAS (DIRECIONAIS ◄ / ► DO CONTROLE • OK SELECIONA):",
-            fontWeight = FontWeight.Black,
-            color = Color(0xFFFFD43F),
-            letterSpacing = 1.sp,
-            fontSize = 9.sp,
-            modifier = Modifier.padding(bottom = 6.dp)
-        )
-        
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 8.dp)
         ) {
-            options.forEach { option ->
-                TVButton(
-                    onClick = { onOptionSelect(option) },
-                    modifier = Modifier.testTag("option_${option.replace(" ", "_")}")
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = null,
+                tint = Color(0xFFFFD43F),
+                modifier = Modifier.size(12.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "SUGESTÕES DA MENTE DA IA (DIRECIONAIS ▲ / ▼ DO CONTROLE DE TV):",
+                fontWeight = FontWeight.Black,
+                color = Color(0xFFFFD43F),
+                letterSpacing = 1.sp,
+                fontSize = 9.sp
+            )
+        }
+        
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            options.forEachIndexed { index, rawOption ->
+                val parsed = parseOption(rawOption)
+                
+                var isFocused by remember { mutableStateOf(false) }
+                val scale by animateFloatAsState(
+                    targetValue = if (isFocused) 1.03f else 1.0f,
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                )
+                
+                val borderColor by animateColorAsState(if (isFocused) parsed.color else Color(0xFF1E172B))
+                val backgroundFillColor by animateColorAsState(
+                    if (isFocused) parsed.color.copy(alpha = 0.12f) else Color(0xFF0C0913)
+                )
+                
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .scale(scale)
+                        .background(backgroundFillColor, RoundedCornerShape(12.dp))
+                        .border(if (isFocused) 2.dp else 1.dp, borderColor, RoundedCornerShape(12.dp))
+                        .focusable(true)
+                        .onFocusChanged { isFocused = it.isFocused }
+                        .clickable { onOptionSelect(parsed.text) }
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                        .testTag("option_${index}")
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "Ativar",
-                        tint = Color(0xFFB19EFF),
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = option,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        maxLines = 1
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .background(parsed.color.copy(alpha = 0.2f), CircleShape)
+                                    .border(1.dp, parsed.color.copy(alpha = 0.4f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = parsed.icon,
+                                    contentDescription = parsed.category,
+                                    tint = parsed.color,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.width(12.dp))
+                            
+                            Box(
+                                modifier = Modifier
+                                    .background(parsed.color.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = parsed.category,
+                                    color = parsed.color,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 8.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.width(10.dp))
+                            
+                            Text(
+                                text = parsed.text,
+                                color = if (isFocused) Color.White else Color(0xFFDFDCE5),
+                                fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 12.sp,
+                                fontFamily = FontFamily.Serif,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    if (isFocused) parsed.color.copy(alpha = 0.25f) else Color(0xFF161220), 
+                                    RoundedCornerShape(6.dp)
+                                )
+                                .border(
+                                    1.dp, 
+                                    if (isFocused) parsed.color.copy(alpha = 0.5f) else Color(0xFF261D38), 
+                                    RoundedCornerShape(6.dp)
+                                )
+                                .padding(horizontal = 6.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "[Opção ${index + 1}]",
+                                color = if (isFocused) Color.White else Color.Gray,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 8.sp
+                            )
+                        }
+                    }
                 }
             }
         }

@@ -2,6 +2,22 @@
 
 Este arquivo de controle registra as modificações de build e novas implementações entregues à plataforma.
 
+## [Build v4.9] - Versão do Aplicativo: 4.9
+**Data e Hora do Envio:** 13 de Junho de 2026, às 02:25:00 UTC / 12 de Junho de 2026, às 23:25:00 BRT
+
+### O que há de novo nesta Build:
+
+1. **Sistema de Sugestão de Ações Totalmente Vinculado à IA:**
+   - **Inteligência de Cenário Intensa:** O prompt principal de sistema do Narrador (`buildSystemPrompt()`) em `GameViewModel` foi amplamente aprimorado. O Gemini é agora instruído de forma clara e rigorosa a analisar a situação do jogo, a classe e subclasse do herói, o conteúdo atual da mochila (itens) e dos feitiços ativos (grimório), entregando opções ricas, literárias e táticas específicas para o momento do RPG em vez de comandos genéricos.
+   - **Marcadores de Categorias Narrativas:** A IA agora gera as sugestões diretamente com marcadores de intenção padronizados em sua resposta estruturada (e.g., `[⚔️ Combate]`, `[🌌 Magia]`, `[🔍 Investigar]`, `[🗣️ Diálogo]`, `[📦 Inventário]`).
+
+2. **Reformulação da Navegação das Escolhas para Android TV (Acessibilidade & Praticidade):**
+   - **Interface em Pilha Vertical (Estilo Dialogue Trees):** Substituição da rolagem horizontal antiga por uma lista vertical esteticamente polida e responsiva, que se adapta ao tamanho da tela e é 100% otimizada para navegação sequencial via direcionais Cima (▲) e Baixo (▼) do controle remoto, eliminando transbordamentos ou cortes de palavras.
+   - **Badges de Categoria e Estilo Dinâmico:** Nova arquitetura de parser incorporada em `MainActivity.kt` (`parseOption`) que extrai o prefixo da opção e decora o cartão com ícone nativo correspondente e cores ricas exclusivas que brilham quando o foco é recebido (Borda carmesim para perigos de Combate, Estrela violeta para Magia, Azul neon para Investigação e Dourado quente para Diálogos).
+   - **Atalhos e Dicas de Teclado:** Incluída a disposição visual numerada (`[Opção 1]`, `[Opção 2]`, `[Opção 3]`) em formato de badge de visualização à direita de cada cartão, melhorando a praticidade no D-pad e acessibilidade geral.
+
+---
+
 ## [Build v4.8] - Versão do Aplicativo: 4.8
 **Data e Hora do Envio:** 13 de Junho de 2026, às 00:55:00 UTC / 21:55:00 BRT
 
