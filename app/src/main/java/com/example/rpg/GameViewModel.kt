@@ -38,7 +38,7 @@ sealed class UpdateCheckState {
 class GameViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
 
     companion object {
-        const val CURRENT_VERSION = 5.0
+        const val CURRENT_VERSION = 5.1
     }
 
     private val context = application.applicationContext
@@ -46,6 +46,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
     private val saveDao = database.gameSaveDao()
     private val geminiRepository = GeminiRepository()
     private val audioRecorder = AudioRecorder(context)
+    private val networkManager = NetworkManager(context)
+    val networkInfo = networkManager.networkInfo
     private val prefs = context.getSharedPreferences("whatisrpg_prefs", android.content.Context.MODE_PRIVATE)
 
     // Current full state of the RPG engine
@@ -367,6 +369,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
     // Dismiss current error toast
     fun clearError() {
         _errorMessage.value = null
+    }
+
+    fun triggerNetworkDiagnostic() {
+        viewModelScope.launch {
+            networkManager.runFullDiagnostic()
+        }
     }
 
     // Manual typing action input fallback
@@ -713,12 +721,28 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
                     processGMResponse(response)
                 } else {
                     _audioState.value = AudioState.Idle
-                    _errorMessage.value = "Sem resposta do Mestre da Masmorra. Tente outro comando ou verifique a internet."
+                    val net = networkManager.networkInfo.value
+                    val typeStr = if (net.isOnline) "ONLINE" else "OFFLINE"
+                    _errorMessage.value = "O Mestre da Masmorra do Google Gemini não pôde responder.\n\n" +
+                            "DIAGNÓSTICO DA SMART TV:\n" +
+                            "• Internet Física: $typeStr (${net.connectionType})\n" +
+                            "• Resolução DNS: ${if (net.dnsOk) "Sucesso" else "Falha"}\n" +
+                            "• Latência Ping: ${if (net.pingMs >= 0) "${net.pingMs}ms" else "Tempo limite"}\n" +
+                            "• IP do Aparelho: ${net.localIp}\n\n" +
+                            "Selecione 'CONFIGS' no topo esquerdo para testar a sua conexão ou revisar a chave de API Gemini."
                 }
             } catch (e: Exception) {
                 Log.e("GameViewModel", "GM Turn calling error: ${e.message}", e)
                 _audioState.value = AudioState.Idle
-                _errorMessage.value = "Algum erro ocorreu com a Inteligência do Mestre: ${e.message}"
+                val net = networkManager.networkInfo.value
+                val typeStr = if (net.isOnline) "ONLINE" else "OFFLINE"
+                _errorMessage.value = "Algum erro ocorreu com a Inteligência do Mestre: ${e.message}\n\n" +
+                        "DIAGNÓSTICO DA SMART TV:\n" +
+                        "• Internet Física: $typeStr (${net.connectionType})\n" +
+                        "• Resolução DNS: ${if (net.dnsOk) "Sucesso" else "Falha"}\n" +
+                        "• Latência Ping: ${if (net.pingMs >= 0) "${net.pingMs}ms" else "Tempo limite"}\n" +
+                        "• IP do Aparelho: ${net.localIp}\n\n" +
+                        "Selecione 'CONFIGS' no topo esquerdo para testar a sua conexão ou revisar a chave de API Gemini."
             }
         }
     }

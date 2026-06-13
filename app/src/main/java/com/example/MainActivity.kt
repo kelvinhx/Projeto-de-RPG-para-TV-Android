@@ -2313,20 +2313,117 @@ fun SettingsAndUpdatesDialog(
                             // Render based on check results
                             when (val state = updateState) {
                                 is UpdateCheckState.Idle -> {
-                                    Box(
+                                    val netInfo by viewModel.networkInfo.collectAsStateWithLifecycle()
+                                    var isDiagnosticBtnFocused by remember { mutableStateOf(false) }
+                                    Column(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .weight(1f)
                                             .background(Color(0xFF0F0D14), RoundedCornerShape(12.dp))
                                             .padding(16.dp),
-                                        contentAlignment = Alignment.Center
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.SpaceBetween
                                     ) {
                                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Icon(Icons.Default.Info, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
-                                            Spacer(modifier = Modifier.height(12.dp))
-                                            Text("Selecione 'Buscar Agora' com o controle remoto para verificar as últimas notas e builds no repositório GitHub.", color = Color.White, fontSize = 12.sp, textAlign = TextAlign.Center)
+                                            Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF8A6BFF), modifier = Modifier.size(24.dp))
                                             Spacer(modifier = Modifier.height(6.dp))
-                                            Text("Versão do aplicativo local: $installedVersion", color = Color(0xFF8A6BFF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Text("Acesso de Rede & Atualizações do Sistema", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                            Text("Versão do aplicativo local: $installedVersion", color = Color.Gray, fontSize = 10.sp)
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(1.dp)
+                                                .background(Color(0xFF2C243B))
+                                        )
+
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth().weight(1f).padding(vertical = 4.dp),
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text("DIAGNÓSTICO REAL DA TV (SEM SIMULAÇÃO):", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFFD43F))
+                                            
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text("Status Geral da Internet:", color = Color.LightGray, fontSize = 11.sp)
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(8.dp)
+                                                            .background(if (netInfo.isOnline) Color.Green else Color.Red, CircleShape)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text(
+                                                        text = if (netInfo.isOnline) "ONLINE" else "OFFLINE",
+                                                        color = if (netInfo.isOnline) Color.Green else Color.Red,
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text("Conexão Física Smart TV:", color = Color.LightGray, fontSize = 11.sp)
+                                                Text(netInfo.connectionType, color = Color.White, fontSize = 11.sp)
+                                            }
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text("Resolução DNS Google API:", color = Color.LightGray, fontSize = 11.sp)
+                                                Text(
+                                                    text = if (netInfo.dnsOk) "Ativa (Sucesso)" else "Erro / Bloqueado",
+                                                    color = if (netInfo.dnsOk) Color.Green else Color(0xFFFF4E4E),
+                                                    fontSize = 11.sp
+                                                )
+                                            }
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text("Latência de Endpoint (Ping):", color = Color.LightGray, fontSize = 11.sp)
+                                                Text(
+                                                    text = if (netInfo.pingMs >= 0) "${netInfo.pingMs} ms" else "Inalcançável",
+                                                    color = if (netInfo.pingMs in 0..250) Color.Green else if (netInfo.pingMs > 250) Color.Yellow else Color(0xFFFF4E4E),
+                                                    fontSize = 11.sp
+                                                )
+                                            }
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text("IP Local da Interface TV:", color = Color.LightGray, fontSize = 11.sp)
+                                                Text(netInfo.localIp, color = Color.White, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(4.dp))
+
+                                        TVButton(
+                                            onClick = { viewModel.triggerNetworkDiagnostic() },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .onFocusChanged { isDiagnosticBtnFocused = it.isFocused }
+                                                .border(2.dp, if (isDiagnosticBtnFocused) Color(0xFFFFD43F) else Color.Transparent, RoundedCornerShape(12.dp))
+                                        ) {
+                                            if (netInfo.isTesting) {
+                                                CircularProgressIndicator(modifier = Modifier.size(12.dp), color = Color.White, strokeWidth = 1.5.dp)
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text("Efetuando Testes Físicos...", color = Color.White, fontSize = 11.sp)
+                                            } else {
+                                                Icon(Icons.Default.Wifi, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text("Testar Conexão Real (DNS & Ping)", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            }
                                         }
                                     }
                                 }

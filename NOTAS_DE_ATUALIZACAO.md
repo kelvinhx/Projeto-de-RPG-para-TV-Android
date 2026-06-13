@@ -2,6 +2,22 @@
 
 Este arquivo de controle registra as modificações de build e novas implementações entregues à plataforma.
 
+## [Build v5.1] - Versão do Aplicativo: 5.1
+**Data e Hora do Envio:** 13 de Junho de 2026, às 03:55:00 UTC / 13 de Junho de 2026, às 00:55:00 BRT
+
+### O que há de novo nesta Build:
+
+1. **Engenharia de Conectividade de Alta Fidelidade (Anti-Fantasia para Android TV):**
+   - **NetworkCallback Nativo:** Integrado o `NetworkManager` corporativo que escuta diretamente o status físico de rede via barramento do sistema Android.
+   - **Diagnóstico Ativo Multi-Nível:** Removemos qualquer suposição ou mock ao rodar consultas DNS diretas contra os domínios do Google Gemini (`generativelanguage.googleapis.com`) combinadas com pings de latência real em threads secundárias (`Dispatchers.IO`).
+   - **Interface de Rastreamento de Sinal:** Criado um painel visual unificado incorporando informações de interface ativa (Wi-Fi, Ethernet), endereçamento IP local, resultados de resolução DNS e latência em milissegundos para diagnóstico em tempo real na TV.
+
+2. **Aprimoramento do Tratamento de Exceções & Integração Gemini:**
+   - **Mensagens Transparentes e Auto-Explicativas:** Substituímos as strings de erro de rede genéricas por relatórios ricos de status diagnóstico físico. Quando uma requisição com o Mestre ou Transcritor de Voz falha, o usuário de Android TV vê de imediato o diagnóstico exato (IP local, DNS, latência, e presença de internet física).
+   - **Permissões Sistêmicas Completas:** Adicionada a declaração explícita de `ACCESS_NETWORK_STATE` no manifesto do app para leitura correta do barramento.
+
+---
+
 ## [Build v5.0] - Versão do Aplicativo: 5.0
 **Data e Hora do Envio:** 13 de Junho de 2026, às 03:45:00 UTC / 13 de Junho de 2026, às 00:45:00 BRT
 
