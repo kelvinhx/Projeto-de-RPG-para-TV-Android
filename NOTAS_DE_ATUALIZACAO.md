@@ -2,6 +2,26 @@
 
 Este arquivo de controle registra as modificações de build e novas implementações entregues à plataforma.
 
+## [Build v5.3] - Versão do Aplicativo: 5.3
+**Data e Hora do Envio:** 13 de Junho de 2026, às 04:25:00 UTC / 13 de Junho de 2026, às 01:25:00 BRT
+
+### O que há de novo nesta Build:
+
+1. **Reformulação Total do Sistema de Atualizações para Android TV:**
+   - **Download e Extração Direta de ZIP:** Agora, o aplicativo busca artefatos/ações de builds mais recentes no GitHub Actions, baixa o pacote `.zip` correspondente e realiza a descompactação completa de todo o seu conteúdo na pasta dedicada `WhatIsRPG` na raiz de armazenamento externo do Android TV (`/sdcard/WhatIsRPG/`), fornecendo persistência pública ideal.
+   - **Lançamento Inteligente do Instalador:** O motor vasculha recursivamente a pasta de destino após a extração, localizando o arquivo `.apk` correto de forma inteligente e acionando o assistente de instalação do Android de forma fluida.
+
+2. **Notificações Minimalistas e Não Invasivas:**
+   - **Banner Flutuante In-Game:** O antigo diálogo de atualização que bloqueava a tela inteira com sobreposições invasivas foi totalmente reformulado em um banner minimalista flutuante no canto superior direito (`Alignment.TopEnd`). Ele exibe informações de forma polida sem interromper a gameplay ou tapar o tabuleiro de ações.
+   - **Navegação Aprimorada por D-Pad:** Tanto o menu de jogo quanto as interações do banner de atualização foram recalibrados para garantir foco visual vibrante, legível e perfeito para o controle remoto do Android TV.
+   - **Silêncio para Apps Atualizados:** Se o jogo estiver na versão mais recente, nenhum banner persistente ou alerta invasivo é disparado, garantindo uma inicialização rápida e um focado "Silêncio de Interface".
+
+3. **Área de Configurações e "Sobre o Autor" Blindada:**
+   - **Remoção do Campo Editável de Autor:** Removido o campo de entrada de texto que permitia alterar o proprietário do GitHub para evitar que o jogador alterasse ou errasse o link do autor.
+   - **Painel Residente "Sobre":** Adicionado um card elegante e puramente informativo "Sobre" que exibe de maneira fixa e permanente o desenvolvedor `kelvinhx` como autor oficial do projeto, blindando as chaves internas contra alterações acidentais.
+
+---
+
 ## [Build v5.2] - Versão do Aplicativo: 5.2
 **Data e Hora do Envio:** 13 de Junho de 2026, às 04:10:00 UTC / 13 de Junho de 2026, às 01:10:00 BRT
 

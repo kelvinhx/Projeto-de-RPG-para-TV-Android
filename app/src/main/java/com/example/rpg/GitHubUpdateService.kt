@@ -228,6 +228,75 @@ object GitHubUpdateService {
     }
 
     /**
+     * Extracts all contents of the ZIP archive into the specified target directory
+     * (e.g., /sdcard/WhatIsRPG na raiz dos arquivos da Android TV).
+     */
+    fun extractZipToFolder(zipFile: File, targetDir: File): Boolean {
+        Log.d("GitHubUpdateService", "Extracting full ZIP to directory: ${targetDir.absolutePath}")
+        try {
+            if (!targetDir.exists()) {
+                targetDir.mkdirs()
+            }
+            java.io.FileInputStream(zipFile).use { fis ->
+                ZipInputStream(fis).use { zis ->
+                    var entry = zis.nextEntry
+                    while (entry != null) {
+                        val outFile = File(targetDir, entry.name)
+                        
+                        // Path traversal vulnerability safeguard
+                        val canonicalPath = outFile.canonicalPath
+                        val canonicalTarget = targetDir.canonicalPath
+                        if (!canonicalPath.startsWith(canonicalTarget)) {
+                            throw SecurityException("Caminho inseguro de ZIP bloqueado: ${entry.name}")
+                        }
+
+                        if (entry.isDirectory) {
+                            outFile.mkdirs()
+                        } else {
+                            outFile.parentFile?.mkdirs()
+                            FileOutputStream(outFile).use { fos ->
+                                val buffer = ByteArray(1024 * 16)
+                                var len: Int
+                                while (zis.read(buffer).also { len = it } > 0) {
+                                    fos.write(buffer, 0, len)
+                                }
+                            }
+                        }
+                        zis.closeEntry()
+                        entry = zis.nextEntry
+                    }
+                }
+            }
+            Log.d("GitHubUpdateService", "Extraction of ZIP succeeded into: ${targetDir.absolutePath}")
+            return true
+        } catch (e: Exception) {
+            Log.e("GitHubUpdateService", "Detailed error extracting ZIP contents: ${e.message}", e)
+            return false
+        }
+    }
+
+    /**
+     * Recursively traverses target directory to find the extracted .apk file.
+     */
+    fun findApkInDirectory(dir: File): File? {
+        try {
+            if (!dir.exists()) return null
+            val files = dir.listFiles() ?: return null
+            for (file in files) {
+                if (file.isDirectory) {
+                    val subFind = findApkInDirectory(file)
+                    if (subFind != null) return subFind
+                } else if (file.name.endsWith(".apk", ignoreCase = true)) {
+                    return file
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("GitHubUpdateService", "Error finding APK file inside directories: ${e.message}", e)
+        }
+        return null
+    }
+
+    /**
      * Saves a permanent copy of the APK to the TV's root public folders.
      */
     fun copyApkToPublicFolders(sourceApk: File, targetVersion: Double) {

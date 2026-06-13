@@ -2117,29 +2117,30 @@ fun SettingsAndUpdatesDialog(
                         Text("Personalize os parâmetros de conexão de dados do WhatIsRPG?", fontSize = 11.sp, color = Color.Gray)
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // GitHub Owner Field
-                        Text("GITHUB OWNER / PROPRIETÁRIO:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF8A6BFF))
+                        // GitHub Owner Field: Displayed as Read-only "Sobre" card
+                        Text("AUTOR DO PROJETO (SOBRE):", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFFD43F))
                         Spacer(modifier = Modifier.height(4.dp))
-                        OutlinedTextField(
-                            value = ownerText,
-                            onValueChange = { 
-                                ownerText = it 
-                                viewModel.saveGithubSettings(it, repoText, tokenText)
-                            },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                focusedBorderColor = Color(0xFF8A6BFF),
-                                unfocusedBorderColor = Color(0xFF2C243B),
-                                focusedContainerColor = Color(0xFF1C1826)
-                            ),
-                            placeholder = { Text("Ex: kelvinhx", color = Color.DarkGray, fontSize = 12.sp) },
-                            singleLine = true,
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .onFocusChanged { isOwnerFocused = it.isFocused }
-                                .border(1.dp, if (isOwnerFocused) Color(0xFFFFD43F) else Color.Transparent, RoundedCornerShape(8.dp))
-                        )
+                                .background(Color(0xFF1C1826), RoundedCornerShape(8.dp))
+                                .border(1.dp, Color(0xFF2C243B), RoundedCornerShape(8.dp))
+                                .padding(12.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = Color(0xFF8A6BFF),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text("kelvinhx", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                    Text("Autor e Desenvolvedor Oficial", color = Color.Gray, fontSize = 10.sp)
+                                }
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(10.dp))
 
@@ -2150,7 +2151,7 @@ fun SettingsAndUpdatesDialog(
                             value = repoText,
                             onValueChange = { 
                                 repoText = it 
-                                viewModel.saveGithubSettings(ownerText, it, tokenText)
+                                viewModel.saveGithubSettings("kelvinhx", it, tokenText)
                             },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.White,
@@ -2176,7 +2177,7 @@ fun SettingsAndUpdatesDialog(
                             value = tokenText,
                             onValueChange = { 
                                 tokenText = it 
-                                viewModel.saveGithubSettings(ownerText, repoText, it)
+                                viewModel.saveGithubSettings("kelvinhx", repoText, it)
                             },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.White,
@@ -2591,111 +2592,109 @@ fun UpdateOfferDialog(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xD9050407))
-            .clickable(enabled = !isApplying) { /* block background clicks */ }
             .padding(24.dp),
-        contentAlignment = Alignment.Center
+        contentAlignment = if (isApplying) Alignment.Center else Alignment.TopEnd
     ) {
         Card(
             colors = CardDefaults.cardColors(containerColor = Color(0xFF130F1A)),
-            border = BorderStroke(2.dp, Color(0xFF8A6BFF)),
-            shape = RoundedCornerShape(20.dp),
+            border = BorderStroke(2.dp, if (isApplying) Color(0xFFFFD43F) else Color(0xFF8A6BFF)),
+            shape = RoundedCornerShape(16.dp),
             modifier = Modifier
-                .fillMaxWidth(0.85f)
+                .width(if (isApplying) 400.dp else 360.dp)
                 .wrapContentHeight()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Header badge
                 Box(
                     modifier = Modifier
                         .background(Color(0xFFFFD43F).copy(alpha = 0.15f), CircleShape)
-                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.Star,
                             contentDescription = null,
                             tint = Color(0xFFFFD43F),
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "NOVA ATUALIZAÇÃO DISPONÍVEL",
+                            text = if (isApplying) "ATUALIZAÇÃO EM CURSO" else "NOVA ATUALIZAÇÃO",
                             color = Color(0xFFFFD43F),
-                            fontSize = 11.sp,
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.ExtraBold,
                             letterSpacing = 1.sp
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 if (!isApplying) {
                     Text(
-                        text = "Instalar a versão ${updateInfo.buildName} (v${updateInfo.appVersion})?",
-                        fontSize = 18.sp,
+                        text = "Instalar Versão ${updateInfo.buildName} (v${updateInfo.appVersion})?",
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                         textAlign = TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "Lançado em: ${updateInfo.dateAndHour}",
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         color = Color(0xFF8A6BFF),
                         fontWeight = FontWeight.Bold
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                    // Changes summary section
+                    // Changes summary section (smaller and cleaner for TV)
                     Text(
-                        text = "NOTAS DE ATUALIZAÇÃO RECENTES:",
+                        text = "NOTAS DE ATUALIZAÇÃO:",
                         color = Color.Gray,
-                        fontSize = 9.sp,
+                        fontSize = 8.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.align(Alignment.Start)
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 120.dp)
-                            .background(Color(0xFF0C0912), RoundedCornerShape(10.dp))
-                            .border(1.dp, Color(0xFF231E2D), RoundedCornerShape(10.dp))
-                            .padding(12.dp)
+                            .heightIn(max = 70.dp)
+                            .background(Color(0xFF0C0912), RoundedCornerShape(8.dp))
+                            .border(1.dp, Color(0xFF231E2D), RoundedCornerShape(8.dp))
+                            .padding(8.dp)
                     ) {
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             if (updateInfo.changesList.isEmpty()) {
                                 item {
                                     Text(
                                         text = updateInfo.rawNotesSection,
                                         color = Color(0xFFD4D0D9),
-                                        fontSize = 12.sp,
+                                        fontSize = 10.sp,
                                         fontFamily = FontFamily.Serif
                                     )
                                 }
                             } else {
                                 items(updateInfo.changesList) { change ->
                                     Row(verticalAlignment = Alignment.Top) {
-                                        Text("✦", color = Color(0xFFFF9E00), fontSize = 11.sp, modifier = Modifier.padding(end = 6.dp))
-                                        Text(text = change, color = Color(0xFFE2DFE5), fontSize = 12.sp, lineHeight = 16.sp)
+                                        Text("✦", color = Color(0xFFFF9E00), fontSize = 9.sp, modifier = Modifier.padding(end = 4.dp))
+                                        Text(text = change, color = Color(0xFFE2DFE5), fontSize = 10.sp, lineHeight = 13.sp)
                                     }
                                 }
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         // Update now button
@@ -2707,12 +2706,12 @@ fun UpdateOfferDialog(
                                 .border(
                                     2.dp,
                                     if (isUpdateFocused) Color.White else Color.Transparent,
-                                    RoundedCornerShape(12.dp)
+                                    RoundedCornerShape(8.dp)
                                 )
                         ) {
-                            Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.Green, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Atualizar Agora", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                            Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.Green, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Atualizar", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                         }
 
                         // Defer / remind me later button
@@ -2724,46 +2723,46 @@ fun UpdateOfferDialog(
                                 .border(
                                     2.dp,
                                     if (isDeferFocused) Color(0xFFFF5252) else Color.Transparent,
-                                    RoundedCornerShape(12.dp)
+                                    RoundedCornerShape(8.dp)
                                 )
                         ) {
-                            Icon(Icons.Default.Close, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Mais Tarde", color = Color.LightGray, fontSize = 12.sp)
+                            Icon(Icons.Default.Close, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Depois", color = Color.LightGray, fontSize = 11.sp)
                         }
                     }
                 } else {
                     // Update in progress!
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     CircularProgressIndicator(
                         progress = { progress },
                         color = Color(0xFFFFD43F),
                         trackColor = Color(0xFF2C243B),
-                        modifier = Modifier.size(64.dp)
+                        modifier = Modifier.size(44.dp)
                     )
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = "EFETUANDO ATUALIZAÇÃO...",
                         color = Color.White,
-                        fontSize = 15.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = 1.sp
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = statusText,
                         color = Color(0xFF8A6BFF),
-                        fontSize = 12.sp,
+                        fontSize = 10.sp,
                         textAlign = TextAlign.Center,
                         fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     
                     // Linear progress bar %
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(0.9f)
-                            .height(6.dp)
+                            .height(4.dp)
                             .background(Color(0xFF241C30), CircleShape)
                     ) {
                         Box(
@@ -2773,11 +2772,11 @@ fun UpdateOfferDialog(
                                 .background(Color(0xFFFFD43F), CircleShape)
                         )
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "${(progress * 100).toInt()}% completo",
+                        text = "${(progress * 100).toInt()}% concluído",
                         color = Color.Gray,
-                        fontSize = 10.sp,
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }

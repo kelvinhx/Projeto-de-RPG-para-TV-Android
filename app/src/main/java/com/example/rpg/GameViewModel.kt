@@ -38,7 +38,7 @@ sealed class UpdateCheckState {
 class GameViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
 
     companion object {
-        const val CURRENT_VERSION = 5.2
+        const val CURRENT_VERSION = 5.3
     }
 
     private val context = application.applicationContext
@@ -202,10 +202,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
             delay(500)
 
             val tempZipFile = File(context.getExternalFilesDir(null) ?: context.cacheDir, "update.zip")
-            val destApkFile = File(context.getExternalFilesDir(null) ?: context.cacheDir, "update.apk")
+            val targetFolder = File(android.os.Environment.getExternalStorageDirectory(), "WhatIsRPG")
 
             val downloadSuccess = GitHubUpdateService.downloadZipFile(zipUrl, tempZipFile, token) { progress ->
-                _updateProgress.value = if (progress >= 0f) progress else 0.45f
+                _updateProgress.value = if (progress >= 0f) progress * 0.8f else 0.45f
                 _updateStatusText.value = "Baixando artefato: ${(progress * 100).toInt()}%"
             }
 
@@ -216,23 +216,35 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
                 return@launch
             }
 
-            _updateStatusText.value = "Extraindo arquivo APK do pacote ZIP..."
-            _updateProgress.value = 0.90f
+            _updateStatusText.value = "Extraindo ZIP completo na pasta /sdcard/WhatIsRPG..."
+            _updateProgress.value = 0.85f
             delay(500)
 
-            val extractionSuccess = GitHubUpdateService.extractApkFromZip(tempZipFile, destApkFile)
+            val extractionSuccess = GitHubUpdateService.extractZipToFolder(tempZipFile, targetFolder)
             if (!extractionSuccess) {
-                _updateStatusText.value = "O ZIP baixado não contém arquivo APK válido."
+                _updateStatusText.value = "Falha ao extrair arquivos no diretório WhatIsRPG."
                 delay(2500)
                 _isApplyingUpdate.value = false
                 return@launch
             }
 
-            _updateStatusText.value = "Salvando cópia do instalador na raiz de arquivos..."
+            _updateStatusText.value = "Localizando arquivo de instalação APK..."
+            _updateProgress.value = 0.90f
+            delay(500)
+
+            val destApkFile = GitHubUpdateService.findApkInDirectory(targetFolder)
+            if (destApkFile == null || !destApkFile.exists()) {
+                _updateStatusText.value = "Nenhum arquivo APK de instalação foi encontrado no ZIP extraído."
+                delay(3000)
+                _isApplyingUpdate.value = false
+                return@launch
+            }
+
+            _updateStatusText.value = "Copiando mestre apk e preparando instalador..."
             _updateProgress.value = 0.95f
             delay(500)
 
-            // Save the copies to public folder, as requested:
+            // Save copies to public folder if wanted
             GitHubUpdateService.copyApkToPublicFolders(destApkFile, targetVersion)
 
             _updateStatusText.value = "Iniciando instalação no sistema Android..."
@@ -287,7 +299,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
     }
 
     fun saveGithubSettings(owner: String, repo: String, token: String) {
-        val cleanOwner = owner.trim().ifEmpty { "kelvinhx" }
+        val cleanOwner = "kelvinhx" // Lock permanently to kelvinhx (developer/author)
         val cleanRepo = repo.trim().ifEmpty { "Projeto-de-RPG-para-TV-Android" }
         val cleanToken = token.trim()
         _githubOwner.value = cleanOwner
