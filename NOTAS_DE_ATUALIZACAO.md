@@ -2,6 +2,21 @@
 
 Este arquivo de controle registra as modificações de build e novas implementações entregues à plataforma.
 
+## [Build v4.6] - Versão do Aplicativo: 4.6
+**Data e Hora do Envio:** 13 de Junho de 2026, às 00:30:00 UTC / 21:30:00 BRT
+
+### O que há de novo nesta Build:
+
+1. **Sistema de Atualização Real e Integrado via GitHub:**
+   - **Download Real e Ativo de APKs:** Substituição dos fluxos simulados por download real em segundo plano utilizando streams de rede robustos em `OkHttp`. O progresso é calculado dinamicamente com base nos bytes em buffer do stream e atualizado em tempo real na barra de carregamento e nas métricas de porcentagem.
+   - **Resolução Dinâmica de Endereços GitHub:** Motor integrado de busca via API de Releases oficiais do GitHub (`/releases/latest`) para localizar e extrair arquivos binários de extensão `.apk` anexados automaticamente. Caso a API de release retorne vazia ou offline, o sistema realiza varreduras em caminhos alternativos do repositório (`app-release.apk`, `/outputs/apk/release`, `/release/app-release.apk`) para garantir a entrega resiliente de novos binários.
+   - **Instalação Automatizada via FileProvider:** Configuração segura de `FileProvider` compartilhando URIs `content://` e declaração de permissão `REQUEST_INSTALL_PACKAGES` no `AndroidManifest.xml` para invocar com sutileza a tela padrão de instalação do sistema Android (`ACTION_VIEW`).
+
+2. **Validação Rigorosa de Ciclo de Vida de Versões:**
+   - O aplicativo agora compara em segundo plano no início de cada carregamento e na Central de Atualizações a versão local atual e a versão remota disponível no arquivo de controle oficial do GitHub, oferecendo e alertando de forma consistente sobre novas builds mais avançadas disponíveis no repositório.
+
+---
+
 ## [Build v4.5] - Versão do Aplicativo: 4.5
 **Data e Hora do Envio:** 13 de Junho de 2026, às 00:15:00 UTC / 21:15:00 BRT (anterior)
 

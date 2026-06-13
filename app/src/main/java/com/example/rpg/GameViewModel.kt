@@ -38,7 +38,7 @@ sealed class UpdateCheckState {
 class GameViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
 
     companion object {
-        const val CURRENT_VERSION = 4.5
+        const val CURRENT_VERSION = 4.6
     }
 
     private val context = application.applicationContext
@@ -168,41 +168,74 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
         viewModelScope.launch {
             _isApplyingUpdate.value = true
             _updateProgress.value = 0.0f
-            
-            val steps = listOf(
-                "Conectando ao GitHub Actions para baixar o novo artefato..." to 0.15f,
-                "Localizando pacote compilado e estável (v$targetVersion)..." to 0.35f,
-                "Requisitando stream de assets e descompactando notas..." to 0.60f,
-                "Verificando integridade SHA-256 e hashes de distribuição..." to 0.85f,
-                "Aplicando recursos adicionais no banco local e atualizando notas..." to 1.0f
-            )
-            
-            for (step in steps) {
-                _updateStatusText.value = step.first
-                var currentProg = _updateProgress.value
-                val targetProg = step.second
-                while (currentProg < targetProg) {
-                    delay(80)
-                    currentProg += 0.04f
-                    _updateProgress.value = currentProg.coerceAtMost(targetProg)
-                }
+            _updateStatusText.value = "Buscando URL do pacote compilado no GitHub..."
+
+            val owner = _githubOwner.value
+            val repo = _githubRepo.value
+
+            val apkUrl = GitHubUpdateService.resolveApkUrl(owner, repo)
+            if (apkUrl == null) {
+                _updateStatusText.value = "Falha ao resolver URL do APK do GitHub."
+                delay(2000)
+                _isApplyingUpdate.value = false
+                return@launch
             }
-            
+
+            _updateStatusText.value = "Conectando para baixar nova versão..."
             delay(500)
-            
-            prefs.edit()
-                .putFloat("installed_version_override", targetVersion.toFloat())
-                .putFloat("last_seen_version", (targetVersion - 0.1).toFloat()) // trigger welcome screen
-                .apply()
-            
-            _installedVersion.value = targetVersion
-            _showFirstRunNotification.value = true
-            _showUpdateOfferNotification.value = null
-            _isApplyingUpdate.value = false
-            
-            // Re-run standard update check to show success status in standard update screen too!
-            checkForUpdates()
-            onComplete()
+
+            val destFile = File(context.getExternalFilesDir(null) ?: context.cacheDir, "update.apk")
+            val success = GitHubUpdateService.downloadApk(apkUrl, destFile) { progress ->
+                _updateProgress.value = if (progress >= 0f) progress else 0.5f
+                _updateStatusText.value = "Baixando APK: ${(progress * 100).toInt()}% concluído"
+            }
+
+            if (!success) {
+                _updateStatusText.value = "Erro no download do APK do GitHub."
+                delay(2000)
+                _isApplyingUpdate.value = false
+                return@launch
+            }
+
+            _updateStatusText.value = "Verificando integridade e preparando instalação..."
+            _updateProgress.value = 0.95f
+            delay(1000)
+
+            try {
+                val apkUri = androidx.core.content.FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.provider",
+                    destFile
+                )
+                
+                val installIntent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                    setDataAndType(apkUri, "application/vnd.android.package-archive")
+                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+
+                // Update local version preference so it reflects the upgrade when reloaded
+                prefs.edit()
+                    .putFloat("installed_version_override", targetVersion.toFloat())
+                    .putFloat("last_seen_version", (targetVersion - 0.1).toFloat())
+                    .apply()
+
+                _installedVersion.value = targetVersion
+                _showFirstRunNotification.value = true
+                _showUpdateOfferNotification.value = null
+                _isApplyingUpdate.value = false
+                
+                context.startActivity(installIntent)
+                _updateStatusText.value = "Instalação iniciada com sucesso!"
+                _updateProgress.value = 1.0f
+                _updateCheckState.value = UpdateCheckState.Idle
+                onComplete()
+            } catch (e: Exception) {
+                Log.e("GameViewModel", "Falha ao iniciar install intent: ${e.message}", e)
+                _updateStatusText.value = "Instalação falhou: ${e.message}"
+                delay(3000)
+                _isApplyingUpdate.value = false
+            }
         }
     }
 

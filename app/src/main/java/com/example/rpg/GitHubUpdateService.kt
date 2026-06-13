@@ -5,6 +5,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
@@ -57,6 +59,109 @@ object GitHubUpdateService {
         } catch (e: Exception) {
             Log.e("GitHubUpdateService", "Failed to check update from GitHub: ${e.message}", e)
             return@withContext null
+        }
+    }
+
+    /**
+     * Resolves the real APK download URL by querying the latest GitHub Release or falling back to common locations.
+     */
+    suspend fun resolveApkUrl(owner: String, repo: String): String? = withContext(Dispatchers.IO) {
+        val repoOwner = owner.trim().ifEmpty { DEFAULT_OWNER }
+        val repoName = repo.trim().ifEmpty { DEFAULT_REPO }
+
+        // Route 1: Check GitHub API latest release
+        val apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/releases/latest"
+        try {
+            val request = Request.Builder().url(apiUrl).build()
+            client.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    val bodyStr = response.body?.string() ?: ""
+                    val matcher = Pattern.compile("\"browser_download_url\"\\s*:\\s*\"([^\"]+\\.apk)\"", Pattern.CASE_INSENSITIVE).matcher(bodyStr)
+                    if (matcher.find()) {
+                        val resolvedUrl = matcher.group(1)
+                        if (resolvedUrl != null) {
+                            Log.d("GitHubUpdateService", "Resolved APK from GitHub Releases: $resolvedUrl")
+                            return@withContext resolvedUrl
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("GitHubUpdateService", "GitHub Release API lookup failed: ${e.message}")
+        }
+
+        // Route 2: Check fallback locations under RAW content in main branch
+        val fallbacks = listOf(
+            "https://raw.githubusercontent.com/$repoOwner/$repoName/main/app-release.apk",
+            "https://raw.githubusercontent.com/$repoOwner/$repoName/main/app/build/outputs/apk/release/app-release.apk",
+            "https://raw.githubusercontent.com/$repoOwner/$repoName/main/app/release/app-release.apk"
+        )
+
+        for (fallback in fallbacks) {
+            try {
+                val request = Request.Builder().url(fallback).head().build()
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        Log.d("GitHubUpdateService", "Resolved APK from fallback RAW URL: $fallback")
+                        return@withContext fallback
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d("GitHubUpdateService", "Fallback HEAD check failed for $fallback: ${e.message}")
+            }
+        }
+
+        // Standard fallback URL
+        return@withContext "https://raw.githubusercontent.com/$repoOwner/$repoName/main/app-release.apk"
+    }
+
+    /**
+     * Downloads an APK file from GitHub and reports download progress real-time.
+     */
+    suspend fun downloadApk(
+        url: String, 
+        destFile: File, 
+        onProgress: (Float) -> Unit
+    ): Boolean = withContext(Dispatchers.IO) {
+        try {
+            if (destFile.exists()) {
+                destFile.delete()
+            }
+            val request = Request.Builder().url(url).build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    Log.e("GitHubUpdateService", "Download failed, HTTP code: ${response.code}")
+                    return@withContext false
+                }
+                val body = response.body ?: return@withContext false
+                val totalBytes = body.contentLength()
+                if (totalBytes <= 0) {
+                    Log.w("GitHubUpdateService", "ContentLength was <= 0, progress tracking is fallback")
+                }
+                
+                body.byteStream().use { inputStream ->
+                    FileOutputStream(destFile).use { outputStream ->
+                        val buffer = ByteArray(1024 * 16)
+                        var bytesRead: Int
+                        var totalRead = 0L
+                        while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                            outputStream.write(buffer, 0, bytesRead)
+                            totalRead += bytesRead
+                            if (totalBytes > 0) {
+                                val progress = totalRead.toFloat() / totalBytes.toFloat()
+                                onProgress(progress)
+                            } else {
+                                onProgress(-1f)
+                            }
+                        }
+                    }
+                }
+                Log.d("GitHubUpdateService", "Successfully downloaded APK to: ${destFile.absolutePath}")
+                return@withContext true
+            }
+        } catch (e: Exception) {
+            Log.e("GitHubUpdateService", "Error downloading APK: ${e.message}", e)
+            return@withContext false
         }
     }
 
