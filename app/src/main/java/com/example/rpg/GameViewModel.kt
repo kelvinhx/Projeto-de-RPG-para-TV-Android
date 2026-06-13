@@ -38,7 +38,7 @@ sealed class UpdateCheckState {
 class GameViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
 
     companion object {
-        const val CURRENT_VERSION = 4.9
+        const val CURRENT_VERSION = 5.0
     }
 
     private val context = application.applicationContext
@@ -327,7 +327,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
         val welcomeLogs = listOf(
             LogEntry(
                 speaker = "Narrador",
-                message = "Bem-vindo a 'WhatIsRPG? O Eco da Podridão' — Uma simulação de RPG viva projetada para Android TV.\n\nControle a história falando com o microfone do seu controle remoto ou selecionando as ações na tela.\n\nPara iniciar a criação de personagem e começar a jogar, diga ou digite:\n'Vamos começar a jornada'"
+                message = "Bem-vindo a 'WhatIsRPG? O Eco da Podridão' — Uma simulação de RPG viva projetada para Android TV.\n\nControle a história falando com o microfone do seu controle remoto ou selecionando as opções com as setas direcionais da sua TV.\n\nPara iniciar a criação de personagem e começar a jogar, diga ou selecione:\n'Vamos começar a jornada'"
             )
         )
         _gameState.value = GameState(
@@ -417,7 +417,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
                     handlePlayerAction(transcribedText)
                 } else {
                     _audioState.value = AudioState.Idle
-                    _errorMessage.value = "Não foi possível compreender o áudio. Tente falar mais perto ou digite a ação."
+                    _errorMessage.value = "Não foi possível compreender o áudio. Tente falar mais perto ou selecione uma opção com o D-pad."
                 }
             } catch (e: Exception) {
                 Log.e("GameViewModel", "Transcription error: ${e.message}")
@@ -549,14 +549,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
                     action.lowercase(Locale.getDefault()).contains("começar") ||
                     action.lowercase(Locale.getDefault()).contains("iniciar")) {
                     
-                    val textStr = "Muito bem. O véu do tempo se rasga e as estrelas sussurram sua chegada.\n\nPara forjar seu destino no mundo sombrio de WhatIsRPG, diga ou digite:\nQual será o NOME do seu personagem?"
+                    val textStr = "Muito bem. O véu do tempo se rasga e as estrelas sussurram sua chegada.\n\nPara forjar seu destino no mundo sombrio de WhatIsRPG, diga ou selecione uma opção:\nQual será o NOME do seu personagem?"
                     speakAndAdvanceState(
                         text = textStr,
                         nextStep = "NOME",
-                        tempOptions = emptyList() // User must type or speak their name
+                        tempOptions = emptyList() // User must select or speak their name
                     )
                 } else {
-                    val fallbackStr = "Comando não reconhecido. Por favor, diga ou digite 'Vamos começar a jornada' para iniciar a aventura classic!"
+                    val fallbackStr = "Comando não reconhecido. Por favor, diga ou selecione 'Vamos começar a jornada' para iniciar a aventura!"
                     speakAndAdvanceState(
                         text = fallbackStr,
                         nextStep = "NOT_STARTED",
@@ -565,7 +565,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
                 }
             }
             "NOME" -> {
-                val nextText = "O nome '$action' reverbera pelos salões ancestrais.\n\nAgora, digite ou descreva a APARÊNCIA FÍSICA de seu herói (como cor da pele, estilo e tom de cabelo, olhos e altura)."
+                val nextText = "O nome '$action' reverbera pelos salões ancestrais.\n\nAgora, diga ou selecione a APARÊNCIA FÍSICA de seu herói (como cor da pele, estilo e tonalidade de cabelo, olhos e altura)."
                 _gameState.value = _gameState.value.copy(
                     playerState = _gameState.value.playerState.copy(name = action)
                 )

@@ -874,7 +874,7 @@ fun PlayerAttributesView(player: PlayerState, viewModel: GameViewModel) {
             if (player.unassignedPoints > 0) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Você tem ${player.unassignedPoints} pontos livres! Clique no [+] ao lado do atributo desejado.",
+                    text = "Você tem ${player.unassignedPoints} pontos livres! Navegue com o D-pad e pressione [OK] no controle para distribuir.",
                     color = Color.Green,
                     fontWeight = FontWeight.Bold,
                     fontSize = 9.sp
@@ -2324,7 +2324,7 @@ fun SettingsAndUpdatesDialog(
                                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                             Icon(Icons.Default.Info, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
                                             Spacer(modifier = Modifier.height(12.dp))
-                                            Text("Clique em 'Buscar Agora' para buscar as últimas notas e builds no repositório GitHub.", color = Color.White, fontSize = 12.sp, textAlign = TextAlign.Center)
+                                            Text("Selecione 'Buscar Agora' com o controle remoto para verificar as últimas notas e builds no repositório GitHub.", color = Color.White, fontSize = 12.sp, textAlign = TextAlign.Center)
                                             Spacer(modifier = Modifier.height(6.dp))
                                             Text("Versão do aplicativo local: $installedVersion", color = Color(0xFF8A6BFF), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                         }

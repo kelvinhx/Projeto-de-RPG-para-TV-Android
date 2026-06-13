@@ -2,6 +2,22 @@
 
 Este arquivo de controle registra as modificações de build e novas implementações entregues à plataforma.
 
+## [Build v5.0] - Versão do Aplicativo: 5.0
+**Data e Hora do Envio:** 13 de Junho de 2026, às 03:45:00 UTC / 13 de Junho de 2026, às 00:45:00 BRT
+
+### O que há de novo nesta Build:
+
+1. **Remoção Absoluta de Interações Touch Screen & Teclado (Foco Exclusivo em Android TV):**
+   - **Linguagem TV-First:** Todo o vocabulário, logs de boas-vindas da aventura, instruções do mestre, orientações visuais do painel e mensagens de erros de sistema foram meticulosamente purificados de qualquer referência a "digitar", "clicar" ou "tocar na tela".
+   - **Instruções Dinâmicas de Personagem:** Refatoradas as diretivas da máquina de estado em `GameViewModel` durante a criação de personagem para incentivar o uso do controle remoto ("diga ou selecione com os direcionais").
+   - **Fallback Automatizado:** Inteligência integrada para prever e disponibilizar fallback de escolhas ativas (como nomes pré-gerados magníficos e traços de aparências detalhadas) prontos para seleção por D-pad, salvando utilizadores de TV de precisar de teclado auxiliar ou permissões adicionais para jogar no início clássico do RPG de mesa fictício.
+
+2. **Aprimoramento da Estrutura de Navegação D-pad:**
+   - **Instruções de Atributos:** O painel de atributos do herói substituiu a terminologia tátil ("Clique no [+]") por orientação puramente baseada no D-pad da TV e no pressionar de OK, eliminando gargalos ou ambiguidades de fluxo.
+   - **Controle GitHub:** O diálogo de atualizações agora guiará o usuário a "Selecionar" o botão de download no controle remoto, mantendo total rigor com o uso autônomo em dispositivos sem ponteiros de mouse.
+
+---
+
 ## [Build v4.9] - Versão do Aplicativo: 4.9
 **Data e Hora do Envio:** 13 de Junho de 2026, às 02:25:00 UTC / 12 de Junho de 2026, às 23:25:00 BRT
 
