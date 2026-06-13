@@ -1908,6 +1908,7 @@ fun SettingsAndUpdatesDialog(
 ) {
     val owner by viewModel.githubOwner.collectAsStateWithLifecycle()
     val repo by viewModel.githubRepo.collectAsStateWithLifecycle()
+    val token by viewModel.githubToken.collectAsStateWithLifecycle()
     val updateState by viewModel.updateCheckState.collectAsStateWithLifecycle()
     val isApplyingUpdate by viewModel.isApplyingUpdate.collectAsStateWithLifecycle()
     val updateProgress by viewModel.updateProgress.collectAsStateWithLifecycle()
@@ -1916,9 +1917,11 @@ fun SettingsAndUpdatesDialog(
 
     var ownerText by remember { mutableStateOf(owner) }
     var repoText by remember { mutableStateOf(repo) }
+    var tokenText by remember { mutableStateOf(token) }
 
     var isOwnerFocused by remember { mutableStateOf(false) }
     var isRepoFocused by remember { mutableStateOf(false) }
+    var isTokenFocused by remember { mutableStateOf(false) }
     var isCheckFocused by remember { mutableStateOf(false) }
     var isResetSettingsFocused by remember { mutableStateOf(false) }
     var isCloseFocused by remember { mutableStateOf(false) }
@@ -1958,7 +1961,7 @@ fun SettingsAndUpdatesDialog(
                             Text("Configurações do Jogo", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                         Text("Personalize os parâmetros de conexão de dados do WhatIsRPG?", fontSize = 11.sp, color = Color.Gray)
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         // GitHub Owner Field
                         Text("GITHUB OWNER / PROPRIETÁRIO:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF8A6BFF))
@@ -1967,7 +1970,7 @@ fun SettingsAndUpdatesDialog(
                             value = ownerText,
                             onValueChange = { 
                                 ownerText = it 
-                                viewModel.saveGithubSettings(it, repoText)
+                                viewModel.saveGithubSettings(it, repoText, tokenText)
                             },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.White,
@@ -1984,7 +1987,7 @@ fun SettingsAndUpdatesDialog(
                                 .border(1.dp, if (isOwnerFocused) Color(0xFFFFD43F) else Color.Transparent, RoundedCornerShape(8.dp))
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
                         // GitHub Repository Field
                         Text("REPOSITÓRIO GITHUB:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF8A6BFF))
@@ -1993,7 +1996,7 @@ fun SettingsAndUpdatesDialog(
                             value = repoText,
                             onValueChange = { 
                                 repoText = it 
-                                viewModel.saveGithubSettings(ownerText, it)
+                                viewModel.saveGithubSettings(ownerText, it, tokenText)
                             },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.White,
@@ -2009,6 +2012,33 @@ fun SettingsAndUpdatesDialog(
                                 .onFocusChanged { isRepoFocused = it.isFocused }
                                 .border(1.dp, if (isRepoFocused) Color(0xFFFFD43F) else Color.Transparent, RoundedCornerShape(8.dp))
                         )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // GitHub Private Token Field (PAT)
+                        Text("TOKEN DE ACESSO GITHUB (OPCIONAL):", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF8A6BFF))
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = tokenText,
+                            onValueChange = { 
+                                tokenText = it 
+                                viewModel.saveGithubSettings(ownerText, repoText, it)
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = Color(0xFF8A6BFF),
+                                unfocusedBorderColor = Color(0xFF2C243B),
+                                focusedContainerColor = Color(0xFF1C1826)
+                            ),
+                            placeholder = { Text("PAT para obter builds privadas", color = Color.DarkGray, fontSize = 11.sp) },
+                            singleLine = true,
+                            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .onFocusChanged { isTokenFocused = it.isFocused }
+                                .border(1.dp, if (isTokenFocused) Color(0xFFFFD43F) else Color.Transparent, RoundedCornerShape(8.dp))
+                        )
                     }
 
                     // Lower Left Actions
@@ -2017,7 +2047,8 @@ fun SettingsAndUpdatesDialog(
                             onClick = { 
                                 ownerText = "kelvinhx"
                                 repoText = "Projeto-de-RPG-para-TV-Android"
-                                viewModel.saveGithubSettings("kelvinhx", "Projeto-de-RPG-para-TV-Android")
+                                tokenText = ""
+                                viewModel.saveGithubSettings("kelvinhx", "Projeto-de-RPG-para-TV-Android", "")
                             },
                             modifier = Modifier
                                 .fillMaxWidth()

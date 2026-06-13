@@ -19,7 +19,7 @@ class AudioRecorder(private val context: Context) {
     private val sampleRate = 16000 // 16kHz is ideal for Gemini audio models
     private val channelConfig = AudioFormat.CHANNEL_IN_MONO
     private val audioFormat = AudioFormat.ENCODING_PCM_16BIT
-    private val bufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
+    private val bufferSize = maxOf(AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat), 4096)
 
     private var audioRecord: AudioRecord? = null
     private var isRecording = false
@@ -99,75 +99,119 @@ class AudioRecorder(private val context: Context) {
         val data = ByteArray(bufferSize)
         var os: FileOutputStream? = null
         
+        // Safe check for bufferSize to avoid any negative array or illegal size exceptions
+        if (bufferSize <= 0) {
+            Log.e("AudioRecorder", "Invalid buffer size: $bufferSize")
+            isRecording = false
+            return
+        }
+        
         // Voice Activity Detection parameters
         var voiceDetected = false
         var consecutiveSilenceFrames = 0
-        
-        // Calibrated thresholds for average living room ambient noise (with gain boost applied)
-        val voiceRmsThreshold = 200.0 // RMS above this is classified as active player voice
-        val silenceRmsThreshold = 90.0 // RMS below this is classified as silence / pause
-        
-        // Buffer read duration helper: buffer size of 2048 at 16kHz 16bit mono is ~64ms of audio
-        // 1.5 seconds of silence ~ 24-28 consecutive silent frames
-        val maxSilenceFramesThreshold = 25 
         var totalRecordedFrames = 0
+        
+        // Dynamically Calibrated Noise Floor tracking
+        var ambientNoiseSum = 0.0
+        val calibrationFramesCount = 6
+        var ambientNoiseRms = 60.0 // solid default baseline
+        var voiceRmsThreshold = 140.0
+        var silenceRmsThreshold = 80.0
+        
+        val maxSilenceFramesThreshold = 25 
+        
+        // Hard safety limits for recording time (Max 8.5 seconds)
+        var totalRecordedBytes = 0L
+        val maxRecordingBytes = sampleRate * 2L * 8.5 // 8.5 seconds of PCM (16kHz 16bit = 32KB/sec)
 
         try {
             os = FileOutputStream(file)
             while (isRecording) {
                 val read = audioRecord?.read(data, 0, bufferSize) ?: -1
-                if (read > 0) {
-                    // Apply a software digital gain amplification (3.5x boost) to capture low-level vocal input
-                    val gainFactor = 3.5f
-                    for (i in 0 until read step 2) {
-                        if (i + 1 < read) {
-                            var sample = ((data[i + 1].toInt() shl 8) or (data[i].toInt() and 0xFF)).toShort().toFloat()
-                            sample *= gainFactor
-                            val clamped = sample.coerceIn(-32768f, 32767f).toInt().toShort()
-                            data[i] = (clamped.toInt() and 0xFF).toByte()
-                            data[i + 1] = ((clamped.toInt() shr 8) and 0xFF).toByte()
-                        }
+                
+                // CRITICAL SAFETY FIX: Avoid infinite spinning when recorder encounters read errors or permissions revoked
+                if (read <= 0) {
+                    Log.e("AudioRecorder", "AudioRecord read returned error code or EOF: $read")
+                    isRecording = false
+                    break
+                }
+
+                // Apply a software digital gain amplification (4.0x boost) to capture low-level vocal input
+                val gainFactor = 4.0f
+                for (i in 0 until read step 2) {
+                    if (i + 1 < read) {
+                        var sample = ((data[i + 1].toInt() shl 8) or (data[i].toInt() and 0xFF)).toShort().toFloat()
+                        sample *= gainFactor
+                        val clamped = sample.coerceIn(-32768f, 32767f).toInt().toShort()
+                        data[i] = (clamped.toInt() and 0xFF).toByte()
+                        data[i + 1] = ((clamped.toInt() shr 8) and 0xFF).toByte()
                     }
+                }
 
-                    os.write(data, 0, read)
-                    totalRecordedFrames++
+                os.write(data, 0, read)
+                totalRecordedBytes += read
+                totalRecordedFrames++
 
-                    // Calculate Root Mean Square (RMS) to determine current audio power level
-                    var sumOfSquares = 0.0
-                    var count = 0
-                    for (i in 0 until read step 2) {
-                        if (i + 1 < read) {
-                            val sample = ((data[i + 1].toInt() shl 8) or (data[i].toInt() and 0xFF)).toShort()
-                            sumOfSquares += sample * sample
-                            count++
-                        }
+                // Hard stop safety limit: exit if recording reaches max allowed duration
+                if (totalRecordedBytes >= maxRecordingBytes) {
+                    Log.i("AudioRecorder", "Safety Limit Reached: ~8.5 seconds recorded. Automatically stopping voice input.")
+                    mainHandler.post {
+                        onSilenceCallback?.invoke()
                     }
-                    val rms = if (count > 0) sqrt(sumOfSquares / count) else 0.0
+                    break
+                }
 
-                    // Print log periodically so we don't spam, but can debug active voice power
-                    if (totalRecordedFrames % 10 == 0) {
-                        Log.d("AudioRecorder", "VAD Status: RMS = ${rms.toInt()}, voiceDetected = $voiceDetected, silenceFrames = $consecutiveSilenceFrames")
+                // Calculate Root Mean Square (RMS) to determine current audio power level
+                var sumOfSquares = 0.0
+                var count = 0
+                for (i in 0 until read step 2) {
+                    if (i + 1 < read) {
+                        val sample = ((data[i + 1].toInt() shl 8) or (data[i].toInt() and 0xFF)).toShort()
+                        sumOfSquares += sample * sample
+                        count++
                     }
+                }
+                val rms = if (count > 0) sqrt(sumOfSquares / count) else 0.0
 
-                    if (!voiceDetected) {
-                        if (rms > voiceRmsThreshold) {
-                            voiceDetected = true
-                            Log.d("AudioRecorder", "VAD Detection: Active Speech Started (RMS: ${rms.toInt()})")
+                // Dynamic Calibration Phase (first 6 frames, approx 300-400ms)
+                if (totalRecordedFrames <= calibrationFramesCount) {
+                    ambientNoiseSum += rms
+                    if (totalRecordedFrames == calibrationFramesCount) {
+                        val avgAmbient = ambientNoiseSum / calibrationFramesCount
+                        ambientNoiseRms = avgAmbient.coerceIn(40.0, 220.0)
+                        
+                        // Relative adaptive thresholds
+                        voiceRmsThreshold = maxOf(ambientNoiseRms * 1.8, 110.0)
+                        silenceRmsThreshold = maxOf(ambientNoiseRms * 1.15, 70.0)
+                        
+                        Log.i("AudioRecorder", "VAD Calibrated - Ambient: ${ambientNoiseRms.toInt()}, Voice Thresh: ${voiceRmsThreshold.toInt()}, Silence Thresh: ${silenceRmsThreshold.toInt()}")
+                    }
+                    continue // Skip detection during calibration
+                }
+
+                // Print log periodically so we don't spam, but can debug active voice power
+                if (totalRecordedFrames % 10 == 0) {
+                    Log.d("AudioRecorder", "VAD Status - RMS: ${rms.toInt()}, voiceDetected: $voiceDetected, silenceFrames: $consecutiveSilenceFrames/$maxSilenceFramesThreshold (Thresh: V=${voiceRmsThreshold.toInt()}, S=${silenceRmsThreshold.toInt()})")
+                }
+
+                if (!voiceDetected) {
+                    if (rms > voiceRmsThreshold) {
+                        voiceDetected = true
+                        Log.d("AudioRecorder", "VAD Detection: Active Speech Started (RMS: ${rms.toInt()} > ${voiceRmsThreshold.toInt()})")
+                    }
+                } else {
+                    if (rms < silenceRmsThreshold) {
+                        consecutiveSilenceFrames++
+                        if (consecutiveSilenceFrames >= maxSilenceFramesThreshold) {
+                            Log.i("AudioRecorder", "VAD Detection: Silence sustained for ~1.5s. Auto-Stopping Voice Input!")
+                            mainHandler.post {
+                                onSilenceCallback?.invoke()
+                            }
+                            break
                         }
                     } else {
-                        if (rms < silenceRmsThreshold) {
-                            consecutiveSilenceFrames++
-                            if (consecutiveSilenceFrames >= maxSilenceFramesThreshold) {
-                                Log.i("AudioRecorder", "VAD Detection: Silence sustained for ~1.5s. Auto-Stopping Voice Input!")
-                                mainHandler.post {
-                                    onSilenceCallback?.invoke()
-                                }
-                                break
-                            }
-                        } else {
-                            // Reset silence counter if user continues speaking a word
-                            consecutiveSilenceFrames = 0
-                        }
+                        // Reset silence counter if user continues speaking a word
+                        consecutiveSilenceFrames = 0
                     }
                 }
             }

@@ -38,7 +38,7 @@ sealed class UpdateCheckState {
 class GameViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
 
     companion object {
-        const val CURRENT_VERSION = 4.6
+        const val CURRENT_VERSION = 4.8
     }
 
     private val context = application.applicationContext
@@ -62,6 +62,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
 
     private val _githubRepo = MutableStateFlow(prefs.getString("github_repo", "Projeto-de-RPG-para-TV-Android") ?: "Projeto-de-RPG-para-TV-Android")
     val githubRepo: StateFlow<String> = _githubRepo.asStateFlow()
+
+    private val _githubToken = MutableStateFlow(prefs.getString("github_token", "") ?: "")
+    val githubToken: StateFlow<String> = _githubToken.asStateFlow()
 
     private val _updateCheckState = MutableStateFlow<UpdateCheckState>(UpdateCheckState.Idle)
     val updateCheckState: StateFlow<UpdateCheckState> = _updateCheckState.asStateFlow()
@@ -168,44 +171,76 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
         viewModelScope.launch {
             _isApplyingUpdate.value = true
             _updateProgress.value = 0.0f
-            _updateStatusText.value = "Buscando URL do pacote compilado no GitHub..."
+            _updateStatusText.value = "Listando artefatos de build no GitHub..."
 
             val owner = _githubOwner.value
             val repo = _githubRepo.value
+            val token = _githubToken.value
 
-            val apkUrl = GitHubUpdateService.resolveApkUrl(owner, repo)
-            if (apkUrl == null) {
-                _updateStatusText.value = "Falha ao resolver URL do APK do GitHub."
-                delay(2000)
+            val artifacts = GitHubUpdateService.getArtifactsList(owner, repo, token)
+            if (artifacts.isEmpty()) {
+                _updateStatusText.value = "Nenhum artefato carregado do GitHub."
+                delay(2500)
                 _isApplyingUpdate.value = false
                 return@launch
             }
 
-            _updateStatusText.value = "Conectando para baixar nova versão..."
+            _updateStatusText.value = "Localizando artefato de ZIP mais recente..."
+            val resolvedPair = GitHubUpdateService.resolveArtifactZipUrl(owner, repo, token, artifacts)
+            if (resolvedPair == null) {
+                _updateStatusText.value = "Falha ao resolver ZIP do artefato."
+                delay(2500)
+                _isApplyingUpdate.value = false
+                return@launch
+            }
+
+            val (zipUrl, artifactName) = resolvedPair
+            _updateStatusText.value = "Iniciando download do ZIP (${artifactName})..."
             delay(500)
 
-            val destFile = File(context.getExternalFilesDir(null) ?: context.cacheDir, "update.apk")
-            val success = GitHubUpdateService.downloadApk(apkUrl, destFile) { progress ->
-                _updateProgress.value = if (progress >= 0f) progress else 0.5f
-                _updateStatusText.value = "Baixando APK: ${(progress * 100).toInt()}% concluído"
+            val tempZipFile = File(context.getExternalFilesDir(null) ?: context.cacheDir, "update.zip")
+            val destApkFile = File(context.getExternalFilesDir(null) ?: context.cacheDir, "update.apk")
+
+            val downloadSuccess = GitHubUpdateService.downloadZipFile(zipUrl, tempZipFile, token) { progress ->
+                _updateProgress.value = if (progress >= 0f) progress else 0.45f
+                _updateStatusText.value = "Baixando artefato: ${(progress * 100).toInt()}%"
             }
 
-            if (!success) {
-                _updateStatusText.value = "Erro no download do APK do GitHub."
-                delay(2000)
+            if (!downloadSuccess) {
+                _updateStatusText.value = "Erro no download do arquivo ZIP."
+                delay(2500)
                 _isApplyingUpdate.value = false
                 return@launch
             }
 
-            _updateStatusText.value = "Verificando integridade e preparando instalação..."
+            _updateStatusText.value = "Extraindo arquivo APK do pacote ZIP..."
+            _updateProgress.value = 0.90f
+            delay(500)
+
+            val extractionSuccess = GitHubUpdateService.extractApkFromZip(tempZipFile, destApkFile)
+            if (!extractionSuccess) {
+                _updateStatusText.value = "O ZIP baixado não contém arquivo APK válido."
+                delay(2500)
+                _isApplyingUpdate.value = false
+                return@launch
+            }
+
+            _updateStatusText.value = "Salvando cópia do instalador na raiz de arquivos..."
             _updateProgress.value = 0.95f
+            delay(500)
+
+            // Save the copies to public folder, as requested:
+            GitHubUpdateService.copyApkToPublicFolders(destApkFile, targetVersion)
+
+            _updateStatusText.value = "Iniciando instalação no sistema Android..."
+            _updateProgress.value = 0.98f
             delay(1000)
 
             try {
                 val apkUri = androidx.core.content.FileProvider.getUriForFile(
                     context,
                     "${context.packageName}.provider",
-                    destFile
+                    destApkFile
                 )
                 
                 val installIntent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
@@ -226,7 +261,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
                 _isApplyingUpdate.value = false
                 
                 context.startActivity(installIntent)
-                _updateStatusText.value = "Instalação iniciada com sucesso!"
+                _updateStatusText.value = "Lançador do instalador iniciado com sucesso!"
                 _updateProgress.value = 1.0f
                 _updateCheckState.value = UpdateCheckState.Idle
                 onComplete()
@@ -235,6 +270,11 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
                 _updateStatusText.value = "Instalação falhou: ${e.message}"
                 delay(3000)
                 _isApplyingUpdate.value = false
+            } finally {
+                // Ensure temporary zip file is deleted to save device storage
+                if (tempZipFile.exists()) {
+                    tempZipFile.delete()
+                }
             }
         }
     }
@@ -243,14 +283,17 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
         _showUpdateOfferNotification.value = null
     }
 
-    fun saveGithubSettings(owner: String, repo: String) {
+    fun saveGithubSettings(owner: String, repo: String, token: String) {
         val cleanOwner = owner.trim().ifEmpty { "kelvinhx" }
         val cleanRepo = repo.trim().ifEmpty { "Projeto-de-RPG-para-TV-Android" }
+        val cleanToken = token.trim()
         _githubOwner.value = cleanOwner
         _githubRepo.value = cleanRepo
+        _githubToken.value = cleanToken
         prefs.edit()
             .putString("github_owner", cleanOwner)
             .putString("github_repo", cleanRepo)
+            .putString("github_token", cleanToken)
             .apply()
     }
 
@@ -964,7 +1007,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application), T
                - NPCs agem como seres autônomos. Eles lembram de suas atitudes anteriores. Altere a 'affinity' de -100 (ódio/traição) a +100 (lealdade/respeito de sangue).
                - Altere e use status emocionais deles (Medo, Raiva, Confiança, Ambição). Eles reagem às cicatrizes e títulos conquistados pelo herói.
                
-            5. FORMATO DE RETORNO OBRIGATÓRIO (JSON):
+            5. CONEXÃO ON-LINE E CONHECIMENTO GLOBAL (Otimização de IA):
+               - Você possui integração total com a Pesquisa Google (Google Search Grounding) para buscar informações on-line em tempo real. Sempre que necessário ou inspirador para a partida, use conexões on-line para pesquisar monstros lendários, folclores clássicos medievais, regras de RPGs clássicos (D&D, Pathfinder, etc.), dados demográficos históricos ou curiosidades geográficas, fundindo essas descobertas com o tom sombrio do Eco da Podridão de forma fluida nas suas respostas e narrações para torná-las imbatíveis e infinitamente criativas.
+               
+            6. FORMATO DE RETORNO OBRIGATÓRIO (JSON):
                Você DEVE responder UNICAMENTE com um objeto JSON válido que possua a estrutura abaixo:
                {
                  "narrative": "Uma narração imersiva, rica, literária e envolvente em português (máximo de 3 parágrafos) descrevendo as consequências imediatas da ação do jogador, do ambiente e diálogos.",

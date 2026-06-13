@@ -2,6 +2,42 @@
 
 Este arquivo de controle registra as modificações de build e novas implementações entregues à plataforma.
 
+## [Build v4.8] - Versão do Aplicativo: 4.8
+**Data e Hora do Envio:** 13 de Junho de 2026, às 00:55:00 UTC / 21:55:00 BRT
+
+### O que há de novo nesta Build:
+
+1. **Permissão Total e Integração com Conexões Online para a IA (Gemini):**
+   - **Google Search Grounding Tool:** Concedido acesso irrestrito de conexão online para o Gemini através da integração da ferramenta `googleSearch` (Pesquisa Google Grounding) no corpo do JSON da requisição `GenerateContentRequest` utilizando mapeamento Moshi. Isto permite que a inteligência artificial faça buscas on-line em tempo real.
+   - **Enriquecimento Narrativo no System Prompt:** Atualizado o Prompt de Sistema do Narrador para instruí-lo explicitamente a realizar pesquisas no Google para enriquecer as rodadas com dados autênticos de RPG (como regras de D&D, Pathfinder), eventos históricos medievais reais, folclores regionais e termos literários.
+
+2. **Reformulação Total do Sistema de Captura do Microfone:**
+   - **Voice Activity Detection (VAD) Autônomo e Adaptativo:** O microfone foi completamente repensado com calibração dinâmica integrada de ruído de fundo (medida nos primeiros 300ms da gravação). Isso elimina a falha de travamentos sob som ambiente alto, calculando os limites de voz e silêncio de forma fluida e adaptativa por RMS.
+   - **Tratamento de Exceções de Hardware de AudioRecord:** Incluído um limite protetivo estrito e incondicional de tamanho mínimo de buffer (garantindo pelo menos 4096 bytes de alocação) e tratamento defensivo contra códigos de erro negativos de leitura que causavam loops de CPU e falhas silenciosas.
+   - **Proteção de Duração Máxima (Hard Stop):** Implementado desligamento automático seguro após 8.5 segundos de gravação de voz contínua, prevenindo loops infinitos em ambientes barulhentos e poupando armazenamento e bateria na Android TV.
+
+---
+
+## [Build v4.7] - Versão do Aplicativo: 4.7
+**Data e Hora do Envio:** 13 de Junho de 2026, às 00:45:00 UTC / 21:45:00 BRT
+
+### O que há de novo nesta Build:
+
+1. **Reprogramação Total para Nova Arquitetura de Actions/Artefatos:**
+   - **Download Direto de Artefatos de Build:** O motor de atualização foi totalmente reestruturado para puxar as compilações automáticas de artefatos criadas pelo GitHub Actions (`WhatIsRPG-Debug-APK`), abandonando a dependência do fluxo clássico de Releases.
+   - **Resolução de ZIP por Token ou Nightly.link:** Introduzido um sofisticado fluxo híbrido e dinâmico que detecta a presença de um Token de Acesso Pessoal (PAT) do GitHub:
+     - *Com Token:* Consulta a API de artefatos de build do GitHub, baixa o pacote de forma autenticada e preserva dados seguros de repositórios privados.
+     - *Sem Token:* Consulta a API de artefatos pública para descobrir os metadados mais recentes e redireciona o download resiliente e anônimo do arquivo ZIP compilado via `nightly.link`.
+   - **Extração Interna de ZIP para APK:** Incorporado suporte a processamento de fluxos compactados (`ZipInputStream`), extraindo o arquivo `.apk` de dentro do arquivo ZIP baixado diretamente para a memória/cache do aplicativo com telemetria exata de progresso.
+
+2. **Cópia de Segurança Autônoma no Armazenamento da Android TV:**
+   - O aplicativo agora gera e mantém automaticamente cópias clonadas e rotuladas (ex: `WhatIsRPG_v4.7.apk`) na pasta pública do jogo `/sdcard/RPG_TV/` e na pasta de Downloads `/sdcard/Download/RPG_TV/`. Isso garante a disponibilidade do arquivo mesmo se houver limitação de rede posterior ou para compartilhamento simples.
+
+3. **Painel Dinâmico de Configuração de Credenciais na Central de Atualizações:**
+   - Adicionado um campo do tipo Password para inserção e armazenamento persistente do **Token de Acesso Pessoal (PAT)** diretamente na caixa de Configurações, facilitando o gerenciamento do controle de rede em TVs Android.
+
+---
+
 ## [Build v4.6] - Versão do Aplicativo: 4.6
 **Data e Hora do Envio:** 13 de Junho de 2026, às 00:30:00 UTC / 21:30:00 BRT
 

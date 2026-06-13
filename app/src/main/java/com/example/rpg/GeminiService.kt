@@ -77,10 +77,19 @@ data class GenerationConfig(
 )
 
 @JsonClass(generateAdapter = true)
+class GoogleSearchTool
+
+@JsonClass(generateAdapter = true)
+data class Tool(
+    @Json(name = "googleSearch") val googleSearch: GoogleSearchTool? = null
+)
+
+@JsonClass(generateAdapter = true)
 data class GenerateContentRequest(
     @Json(name = "contents") val contents: List<Content>,
     @Json(name = "generationConfig") val generationConfig: GenerationConfig? = null,
-    @Json(name = "systemInstruction") val systemInstruction: Content? = null
+    @Json(name = "systemInstruction") val systemInstruction: Content? = null,
+    @Json(name = "tools") val tools: List<Tool>? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -249,7 +258,8 @@ class GeminiRepository {
             ),
             systemInstruction = Content(
                 parts = listOf(Part(text = systemPrompt))
-            )
+            ),
+            tools = listOf(Tool(googleSearch = GoogleSearchTool()))
         )
 
         return try {

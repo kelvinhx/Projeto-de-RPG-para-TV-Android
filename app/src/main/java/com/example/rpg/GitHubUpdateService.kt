@@ -9,6 +9,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
+import java.util.zip.ZipInputStream
 
 data class GitHubUpdateInfo(
     val buildName: String,
@@ -19,6 +20,13 @@ data class GitHubUpdateInfo(
     val isMoreRecent: Boolean
 )
 
+data class GitHubArtifact(
+    val id: Long,
+    val name: String,
+    val archiveDownloadUrl: String,
+    val expired: Boolean
+)
+
 object GitHubUpdateService {
 
     private const val DEFAULT_OWNER = "kelvinhx"
@@ -26,8 +34,8 @@ object GitHubUpdateService {
     private const val FILE_PATH = "NOTAS_DE_ATUALIZACAO.md"
 
     private val client = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(20, TimeUnit.SECONDS)
         .build()
 
     /**
@@ -63,84 +71,100 @@ object GitHubUpdateService {
     }
 
     /**
-     * Resolves the real APK download URL by querying the latest GitHub Release or falling back to common locations.
+     * Lists artifacts for the repository using GitHub API.
+     * This API is public and can be run anonymously if no token is provided.
      */
-    suspend fun resolveApkUrl(owner: String, repo: String): String? = withContext(Dispatchers.IO) {
+    suspend fun getArtifactsList(owner: String, repo: String, token: String = ""): List<GitHubArtifact> = withContext(Dispatchers.IO) {
         val repoOwner = owner.trim().ifEmpty { DEFAULT_OWNER }
         val repoName = repo.trim().ifEmpty { DEFAULT_REPO }
+        val apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/actions/artifacts"
 
-        // Route 1: Check GitHub API latest release
-        val apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/releases/latest"
         try {
-            val request = Request.Builder().url(apiUrl).build()
-            client.newCall(request).execute().use { response ->
+            val reqBuilder = Request.Builder()
+                .url(apiUrl)
+                .header("User-Agent", "DungeonMasterTV")
+                .header("Accept", "application/vnd.github+json")
+            
+            if (token.trim().isNotEmpty()) {
+                reqBuilder.header("Authorization", "Bearer ${token.trim()}")
+            }
+
+            client.newCall(reqBuilder.build()).execute().use { response ->
                 if (response.isSuccessful) {
                     val bodyStr = response.body?.string() ?: ""
-                    val matcher = Pattern.compile("\"browser_download_url\"\\s*:\\s*\"([^\"]+\\.apk)\"", Pattern.CASE_INSENSITIVE).matcher(bodyStr)
-                    if (matcher.find()) {
-                        val resolvedUrl = matcher.group(1)
-                        if (resolvedUrl != null) {
-                            Log.d("GitHubUpdateService", "Resolved APK from GitHub Releases: $resolvedUrl")
-                            return@withContext resolvedUrl
-                        }
-                    }
+                    return@withContext parseArtifactsList(bodyStr)
+                } else {
+                    Log.e("GitHubUpdateService", "Failed to list artifacts: HTTP code ${response.code} ${response.message}")
                 }
             }
         } catch (e: Exception) {
-            Log.e("GitHubUpdateService", "GitHub Release API lookup failed: ${e.message}")
+            Log.e("GitHubUpdateService", "Error listing GitHub artifacts: ${e.message}", e)
         }
-
-        // Route 2: Check fallback locations under RAW content in main branch
-        val fallbacks = listOf(
-            "https://raw.githubusercontent.com/$repoOwner/$repoName/main/app-release.apk",
-            "https://raw.githubusercontent.com/$repoOwner/$repoName/main/app/build/outputs/apk/release/app-release.apk",
-            "https://raw.githubusercontent.com/$repoOwner/$repoName/main/app/release/app-release.apk"
-        )
-
-        for (fallback in fallbacks) {
-            try {
-                val request = Request.Builder().url(fallback).head().build()
-                client.newCall(request).execute().use { response ->
-                    if (response.isSuccessful) {
-                        Log.d("GitHubUpdateService", "Resolved APK from fallback RAW URL: $fallback")
-                        return@withContext fallback
-                    }
-                }
-            } catch (e: Exception) {
-                Log.d("GitHubUpdateService", "Fallback HEAD check failed for $fallback: ${e.message}")
-            }
-        }
-
-        // Standard fallback URL
-        return@withContext "https://raw.githubusercontent.com/$repoOwner/$repoName/main/app-release.apk"
+        return@withContext emptyList<GitHubArtifact>()
     }
 
     /**
-     * Downloads an APK file from GitHub and reports download progress real-time.
+     * Resolves the real download URL of the latest Actions artifact ZIP.
+     * Checks token first, otherwise constructs a nightly.link download URL.
      */
-    suspend fun downloadApk(
+    suspend fun resolveArtifactZipUrl(
+        owner: String, 
+        repo: String, 
+        token: String = "",
+        artifactsList: List<GitHubArtifact>
+    ): Pair<String, String>? = withContext(Dispatchers.IO) {
+        val repoOwner = owner.trim().ifEmpty { DEFAULT_OWNER }
+        val repoName = repo.trim().ifEmpty { DEFAULT_REPO }
+
+        // Choose newest artifact whose name contains 'WhatIsRPG', or ends with '-APK', or anything active
+        val targetArtifact = artifactsList.firstOrNull { it.name.contains("WhatIsRPG", ignoreCase = true) && !it.expired }
+            ?: artifactsList.firstOrNull { it.name.contains("APK", ignoreCase = true) && !it.expired }
+            ?: artifactsList.firstOrNull { !it.expired }
+
+        val finalArtifactName = targetArtifact?.name ?: "WhatIsRPG-Debug-APK"
+
+        if (token.trim().isNotEmpty() && targetArtifact != null) {
+            Log.d("GitHubUpdateService", "Resolved API ZIP URL with custom PAT for artifact ID: ${targetArtifact.id}")
+            return@withContext Pair(targetArtifact.archiveDownloadUrl, finalArtifactName)
+        }
+
+        // Standard fallback mode: nightly.link
+        val nightlyLink = "https://nightly.link/$repoOwner/$repoName/workflows/android/main/${finalArtifactName}.zip"
+        Log.d("GitHubUpdateService", "Resolved Fallback artifact ZIP URL from nightly.link: $nightlyLink")
+        return@withContext Pair(nightlyLink, finalArtifactName)
+    }
+
+    /**
+     * Downloads the zip file from specified URL, optionally including a PAT header.
+     */
+    suspend fun downloadZipFile(
         url: String, 
-        destFile: File, 
+        destZipFile: File, 
+        token: String = "",
         onProgress: (Float) -> Unit
     ): Boolean = withContext(Dispatchers.IO) {
         try {
-            if (destFile.exists()) {
-                destFile.delete()
+            if (destZipFile.exists()) {
+                destZipFile.delete()
             }
-            val request = Request.Builder().url(url).build()
-            client.newCall(request).execute().use { response ->
+            val reqBuilder = Request.Builder()
+                .url(url)
+                .header("User-Agent", "DungeonMasterTV")
+            
+            if (token.trim().isNotEmpty() && url.contains("api.github.com")) {
+                reqBuilder.header("Authorization", "Bearer ${token.trim()}")
+            }
+
+            client.newCall(reqBuilder.build()).execute().use { response ->
                 if (!response.isSuccessful) {
-                    Log.e("GitHubUpdateService", "Download failed, HTTP code: ${response.code}")
+                    Log.e("GitHubUpdateService", "Download zip failed, HTTP code: ${response.code}")
                     return@withContext false
                 }
                 val body = response.body ?: return@withContext false
                 val totalBytes = body.contentLength()
-                if (totalBytes <= 0) {
-                    Log.w("GitHubUpdateService", "ContentLength was <= 0, progress tracking is fallback")
-                }
                 
                 body.byteStream().use { inputStream ->
-                    FileOutputStream(destFile).use { outputStream ->
+                    FileOutputStream(destZipFile).use { outputStream ->
                         val buffer = ByteArray(1024 * 16)
                         var bytesRead: Int
                         var totalRead = 0L
@@ -149,20 +173,132 @@ object GitHubUpdateService {
                             totalRead += bytesRead
                             if (totalBytes > 0) {
                                 val progress = totalRead.toFloat() / totalBytes.toFloat()
-                                onProgress(progress)
+                                onProgress(progress * 0.9f) // Leave remaining 10% for ZIP extraction
                             } else {
                                 onProgress(-1f)
                             }
                         }
                     }
                 }
-                Log.d("GitHubUpdateService", "Successfully downloaded APK to: ${destFile.absolutePath}")
+                Log.d("GitHubUpdateService", "Successfully downloaded ZIP to: ${destZipFile.absolutePath}")
                 return@withContext true
             }
         } catch (e: Exception) {
-            Log.e("GitHubUpdateService", "Error downloading APK: ${e.message}", e)
+            Log.e("GitHubUpdateService", "Error downloading ZIP file: ${e.message}", e)
             return@withContext false
         }
+    }
+
+    /**
+     * Extracts the first file with .apk extension from the zip file.
+     */
+    fun extractApkFromZip(zipFile: File, destApkFile: File): Boolean {
+        Log.d("GitHubUpdateService", "Extracting APK from downloaded ZIP...")
+        try {
+            if (destApkFile.exists()) {
+                destApkFile.delete()
+            }
+            java.io.FileInputStream(zipFile).use { fis ->
+                ZipInputStream(fis).use { zis ->
+                    var entry = zis.nextEntry
+                    while (entry != null) {
+                        if (entry.name.endsWith(".apk", ignoreCase = true)) {
+                            Log.d("GitHubUpdateService", "Found APK entry in ZIP: ${entry.name}")
+                            FileOutputStream(destApkFile).use { fos ->
+                                val buffer = ByteArray(1024 * 16)
+                                var len: Int
+                                while (zis.read(buffer).also { len = it } > 0) {
+                                    fos.write(buffer, 0, len)
+                                }
+                            }
+                            zis.closeEntry()
+                            Log.d("GitHubUpdateService", "Successfully extracted APK to: ${destApkFile.absolutePath}")
+                            return true
+                        }
+                        zis.closeEntry()
+                        entry = zis.nextEntry
+                    }
+                }
+            }
+            Log.e("GitHubUpdateService", "No APK file found inside the retrieved ZIP file.")
+        } catch (e: Exception) {
+            Log.e("GitHubUpdateService", "Error extracting zip: ${e.message}", e)
+        }
+        return false
+    }
+
+    /**
+     * Saves a permanent copy of the APK to the TV's root public folders.
+     */
+    fun copyApkToPublicFolders(sourceApk: File, targetVersion: Double) {
+        try {
+            val fileName = "WhatIsRPG_v${targetVersion}.apk"
+            val possibleDirs = listOf(
+                File(android.os.Environment.getExternalStorageDirectory(), "RPG_TV"),
+                File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS), "RPG_TV"),
+                File("/sdcard/RPG_TV")
+            )
+            for (dir in possibleDirs) {
+                try {
+                    if (!dir.exists()) {
+                        dir.mkdirs()
+                    }
+                    val destFile = File(dir, fileName)
+                    sourceApk.inputStream().use { input ->
+                        destFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    Log.d("GitHubUpdateService", "Saved master copy of layout update to: ${destFile.absolutePath}")
+                } catch (e: Exception) {
+                    Log.w("GitHubUpdateService", "Failed to write copy to ${dir.absolutePath}: ${e.message}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("GitHubUpdateService", "Global error copying APK clone: ${e.message}")
+        }
+    }
+
+    /**
+     * Custom JSON tokenizer to extract artifacts reliably from the response payload.
+     */
+    fun parseArtifactsList(json: String): List<GitHubArtifact> {
+        val list = mutableListOf<GitHubArtifact>()
+        try {
+            val startIdx = json.indexOf("\"artifacts\"")
+            if (startIdx == -1) return list
+            val listStart = json.indexOf("[", startIdx)
+            val listEnd = json.indexOf("]", listStart)
+            if (listStart == -1 || listEnd == -1) return list
+            val listContent = json.substring(listStart + 1, listEnd)
+            
+            val blocks = listContent.split("{")
+            for (block in blocks) {
+                val trimmedBlock = block.trim()
+                if (trimmedBlock.isEmpty()) continue
+                
+                val idPattern = Pattern.compile("\"id\"\\s*:\\s*(\\d+)")
+                val namePattern = Pattern.compile("\"name\"\\s*:\\s*\"([^\"]+)\"")
+                val archivePattern = Pattern.compile("\"archive_download_url\"\\s*:\\s*\"([^\"]+)\"")
+                val expiredPattern = Pattern.compile("\"expired\"\\s*:\\s*(true|false)")
+                
+                val idMatcher = idPattern.matcher(trimmedBlock)
+                val nameMatcher = namePattern.matcher(trimmedBlock)
+                val archiveMatcher = archivePattern.matcher(trimmedBlock)
+                val expiredMatcher = expiredPattern.matcher(trimmedBlock)
+                
+                if (idMatcher.find() && nameMatcher.find() && archiveMatcher.find()) {
+                    val id = idMatcher.group(1)?.toLongOrNull() ?: continue
+                    val name = nameMatcher.group(2) ?: ""
+                    val url = archiveMatcher.group(1) ?: ""
+                    val expired = if (expiredMatcher.find()) expiredMatcher.group(1).toBoolean() else false
+                    list.add(GitHubArtifact(id, name, url, expired))
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("GitHubUpdateService", "JSON tokenizer parsing exception: ${e.message}", e)
+        }
+        return list
     }
 
     /**
@@ -170,8 +306,6 @@ object GitHubUpdateService {
      */
     fun parseMarkdownNotes(markdown: String, currentVersion: Double): GitHubUpdateInfo? {
         try {
-            // Find sections starting with "## [Build ...]"
-            // e.g.: ## [Build v3] - Versão do Aplicativo: 3.0
             val pattern = Pattern.compile(
                 "^##\\s*\\[(Build\\s+v[\\w.]+)\\]\\s*-\\s*Versão do Aplicativo:\\s*([\\d.]+)",
                 Pattern.CASE_INSENSITIVE or Pattern.MULTILINE
@@ -183,26 +317,22 @@ object GitHubUpdateService {
                 val versionStr = matcher.group(2) ?: "1.0"
                 val appVersion = versionStr.toDoubleOrNull() ?: 1.0
 
-                // Get content start from after the header match
                 val startIdx = matcher.end()
                 
-                // Find next section "##" to terminate the release notes block
                 val endIdx = markdown.indexOf("## ", startIdx).let {
                     if (it != -1) it else markdown.length
                 }
 
                 val notesBlock = markdown.substring(startIdx, endIdx).trim()
                 
-                // Parse date/hour which is typically on the next line: "**Data e Hora do Envio:** ..."
                 val datePattern = Pattern.compile("\\*\\*Data e Hora do Envio:\\*\\*\\s*(.*)", Pattern.CASE_INSENSITIVE)
                 val dateMatcher = datePattern.matcher(notesBlock)
                 val dateAndHour = if (dateMatcher.find()) {
                     dateMatcher.group(1)?.trim() ?: "Desconhecido"
                 } else {
-                    "Disponibilizado recientemente"
+                    "Disponibilizado recentemente"
                 }
 
-                // Extract changes list (lines that start with - or list bullets)
                 val lines = notesBlock.split("\n")
                 val changes = mutableListOf<String>()
                 lines.forEach { line ->
