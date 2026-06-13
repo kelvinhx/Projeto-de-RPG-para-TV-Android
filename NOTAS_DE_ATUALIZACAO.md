@@ -2,6 +2,20 @@
 
 Este arquivo de controle registra as modificações de build e novas implementações entregues à plataforma.
 
+## [Build v5.2] - Versão do Aplicativo: 5.2
+**Data e Hora do Envio:** 13 de Junho de 2026, às 04:10:00 UTC / 13 de Junho de 2026, às 01:10:00 BRT
+
+### O que há de novo nesta Build:
+
+1. **Centralização e Orquestração do Motor de IA (GeminiIntelligenceEngine):**
+   - **Novo Arquivo Exclusivo de IA:** Criado o `GeminiIntelligenceEngine.kt` para isolar e centralizar as comunicações do projeto com os endpoints do Google Gemini, organizando prompts e de forma limpa seguindo padrões avançados de desenvolvimento para Smart TV.
+   - **Grounding da Pesquisa Google Ativo:** O narrador agora tem permissão irrestrita baseada no cérebro do Gemini para realizar buscas on-line reais (Grounding) quando o jogador fizer alusões a mitos reais, folclores medievais clássicos, regras de RPGs consagrados ou dados geográficos, integrando de forma contínua essas informações ao cenário de retro-fantasia sombria.
+
+2. **Aprimoramento Cognitivo da Ferramenta de Voz:**
+   - **Filtro Semântico de Voz:** Implementado um algoritmo dinâmico de correção na engine para alinhar comandos capturados por microfones de TV (muito suscetíveis a ruídos e distorções) com grimórios de feitiços (ex: Luz de Prata), inventários locais (específicos de armas) ou NPCs próximos. A IA corrige imperfeições de áudio automaticamente, assegurando uma experiência de jogabilidade por voz estável e livre de falhas de digitação ou pronúncia.
+
+---
+
 ## [Build v5.1] - Versão do Aplicativo: 5.1
 **Data e Hora do Envio:** 13 de Junho de 2026, às 03:55:00 UTC / 13 de Junho de 2026, às 00:55:00 BRT
 
